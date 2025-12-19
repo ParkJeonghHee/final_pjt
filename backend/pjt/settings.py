@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import environ
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,17 +27,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 
 
-env = environ.Env(DEBUT=(bool, True))
-environ.Env.read_env(BASE_DIR / ".env")
+env = environ.Env(DEBUT=(bool, False))
+environ.Env.read_env(os.path.join(BASE_DIR / ".env"))
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+
+FIN_API_KEY = env("FIN_API_KEY")
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'products',
     'accounts',
     'pages',
     'corsheaders',
