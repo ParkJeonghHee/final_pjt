@@ -5,12 +5,12 @@
 
             <div class="mb-3">
                 <label class="form-label">아이디</label>
-                <input v-model="username" class="form-control" placeholder="test" />
+                <input v-model="username" class="form-control" placeholder="아이디를 입력하세요" />
             </div>
 
             <div class="mb-3">
                 <label class="form-label">비밀번호</label>
-                <input v-model="password" type="password" class="form-control" placeholder="임시" />
+                <input v-model="password" type="password" class="form-control" placeholder="비밀번호를 입력하세요" />
             </div>
 
             <button class="btn btn-primary w-100" @click="doLogin">로그인</button>
@@ -26,7 +26,7 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
-const username = ref('test')
+const username = ref('')
 const password = ref('')
 
 function doLogin() {
