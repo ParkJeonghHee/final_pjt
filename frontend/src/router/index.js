@@ -11,7 +11,7 @@ import MetalsView from '@/views/MetalsView.vue'
 import StocksView from '@/views/StocksView.vue'
 import MapView from '@/views/MapView.vue'
 import CommunityView from '@/views/CommunityView.vue'
-
+import ProductDetailView from '@/views/ProductDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,6 +25,7 @@ const router = createRouter({
     { path: '/stocks', component: StocksView },
     { path: '/map', component: MapView },
     { path: '/community', component: CommunityView },
+    { path: '/products/:id', component: ProductDetailView },
   ],
 })
 
