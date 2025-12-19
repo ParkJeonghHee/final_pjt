@@ -7,6 +7,10 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import FinProduct, FinProductOption
+from .serializers import FinProductListSerializer, FinProductDetailSerializer
+
+from django.db.models import Prefetch, Max
+from rest_framework.permissions import AllowAny
 
 # Create your views here.
 
@@ -97,3 +101,115 @@ class ProductSyncView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+class DepositListView(APIView):
+    def get(self, request):
+        bank = request.GET.get("bank")
+        term = request.GET.get("term")
+        q = request.GET.get("q")
+        sort = request.GET.get("sort")
+
+        qs = FinProduct.objects.filter(product_type="DEPOSIT")
+
+        if bank and bank != '전체':
+            qs = qs.filter(kor_co_nm = bank)
+        
+        if q:
+            qs = qs.filter(fin_prdt_nm__icontains=q)
+
+        if term:
+            if term.isdigit():
+                term = int(term)
+
+            qs = qs.filter(options__save_trm=term).distinct()
+
+        serializer = FinProductListSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class SavingListView(APIView):
+    def get(self, request):
+        bank = request.GET.get("bank")
+        term = request.GET.get("term")
+        q = request.GET.get("q")
+
+        qs = FinProduct.objects.filter(product_type="SAVING")
+
+        if bank and bank != "전체":
+            qs = qs.filter(kor_co_nm = bank)
+        
+        if q:
+            qs = qs.filter(fin_prdt_nm__icontains=q)
+        
+        if term:
+            if term.isdigit():
+                term = int(term)
+            qs = qs.filter(options__save_trm=term).distinct()
+
+        serializer = FinProductListSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+
+class ProductListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        ptype = request.GET.get("type")          # DEPOSIT / SAVING
+        bank = request.GET.get("bank")           # 은행명
+        term = request.GET.get("term")           # 6/12/24/36
+        q = request.GET.get("q")                 # 검색어(상품명)
+        sort = request.GET.get("sort")           # rate2 / rate / name
+
+        qs = FinProduct.objects.all()
+
+        if ptype in ["DEPOSIT", "SAVING"]:
+            qs = qs.filter(product_type=ptype)
+
+        if bank and bank != "전체":
+            qs = qs.filter(kor_co_nm=bank)
+
+        if q:
+            qs = qs.filter(fin_prdt_nm__icontains=q)
+
+        if term and str(term).isdigit():
+            qs = qs.filter(options__save_trm=int(term)).distinct()
+
+        if sort == "rate2":
+            qs = qs.annotate(max_rate2=Max("options__intr_rate2")).order_by("-max_rate2", "kor_co_nm", "fin_prdt_nm")
+        elif sort == "rate":
+            qs = qs.annotate(max_rate=Max("options__intr_rate")).order_by("-max_rate", "kor_co_nm", "fin_prdt_nm")
+        elif sort == "name":
+            qs = qs.order_by("fin_prdt_nm")
+        else:
+            qs = qs.order_by("kor_co_nm", "fin_prdt_nm")
+
+        qs = qs.prefetch_related("options")
+
+        serializer = FinProductListSerializer(qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProductDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        product = FinProduct.objects.prefetch_related("options").get(pk=pk)
+        serializer = FinProductDetailSerializer(product)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class BankListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        ptype = request.GET.get("type")  # DEPOSIT/SAVING(선택)
+        qs = FinProduct.objects.all()
+        if ptype in ["DEPOSIT", "SAVING"]:
+            qs = qs.filter(product_type=ptype)
+
+        banks = qs.values_list("kor_co_nm", flat=True).distinct().order_by("kor_co_nm")
+        return Response(["전체"] + list(banks), status=status.HTTP_200_OK)
+
+
