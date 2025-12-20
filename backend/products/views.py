@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
 
 import requests
 from django.conf import settings
@@ -11,6 +11,9 @@ from .serializers import FinProductListSerializer, FinProductDetailSerializer
 
 from django.db.models import Prefetch, Max
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Create your views here.
 
@@ -195,9 +198,19 @@ class ProductDetailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, pk):
-        product = FinProduct.objects.prefetch_related("options").get(pk=pk)
-        serializer = FinProductDetailSerializer(product)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        product = get_object_or_404(
+            FinProduct.objects.prefetch_related('options'),
+            pk=pk
+        )
+
+        data = FinProductDetailSerializer(product).data
+
+        if request.user.is_authenticated:
+            data["is_joined"] = request.user.joined_products.filter(pk=product.pk).exists()
+        else:
+            data["is_joined"] = False
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class BankListView(APIView):
@@ -213,3 +226,15 @@ class BankListView(APIView):
         return Response(["전체"] + list(banks), status=status.HTTP_200_OK)
 
 
+class ProductJoinView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        product = get_object_or_404(FinProduct, pk=pk)
+
+        if request.user.joined_products.filter(id=product.id).exists():
+            return Response({"message": "already joined"}, status=status.HTTP_200_OK)
+
+        request.user.joined_products.add(product)
+        return Response({"message": "joined", "product_id": product.id}, status=status.HTTP_201_CREATED)

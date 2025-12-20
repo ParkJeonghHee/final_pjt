@@ -12,4 +12,8 @@ class User(AbstractUser):
     income = models.BigIntegerField(null=True, blank=True)
 
     # 가입한 상품 목록
-    joined_products = models.JSONField(default=list, blank=True)
+    joined_products = models.ManyToManyField(
+        "products.FinProduct",
+        blank=True,
+        related_name='joined_users',
+    )
