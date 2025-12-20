@@ -28,9 +28,16 @@ const router = useRouter()
 
 const username = ref('')
 const password = ref('')
+const error = ref('')
 
-function doLogin() {
-    auth.login(username.value)
-    router.push('/profile')
+async function doLogin() {
+    error.value = ""
+    
+    try {
+        await auth.login(username.value, password.value)
+        router.push("/profile")
+    } catch(e) {
+        error.value = "로그인 실패 (아이디 또는 비밀번호 확인)"
+    }
 }
 </script>
