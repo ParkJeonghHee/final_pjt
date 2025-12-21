@@ -12,6 +12,7 @@ import StocksView from '@/views/StocksView.vue'
 import MapView from '@/views/MapView.vue'
 import CommunityView from '@/views/CommunityView.vue'
 import ProductDetailView from '@/views/ProductDetailView.vue'
+import StockDetailView from '@/views/StockDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,7 @@ const router = createRouter({
     { path: '/map', component: MapView },
     { path: '/community', component: CommunityView },
     { path: '/products/:id', component: ProductDetailView },
+    { path: '/stocks/:videoId', component: StockDetailView},
   ],
 })
 
