@@ -6,6 +6,7 @@
     <!-- 상품 타입 선택 -->
     <div class="btn-group mb-3">
       <button
+        type="button"
         class="btn"
         :class="productType === 'DEPOSIT' ? 'btn-primary' : 'btn-outline-primary'"
         @click="changeType('DEPOSIT')"
@@ -13,6 +14,7 @@
         정기예금
       </button>
       <button
+        type="button"
         class="btn"
         :class="productType === 'SAVING' ? 'btn-primary' : 'btn-outline-primary'"
         @click="changeType('SAVING')"
@@ -47,11 +49,16 @@
           v-model="q"
           class="form-control"
           placeholder="상품명 검색"
+          @keyup.enter="fetchProductsList"
         />
       </div>
 
       <div class="col-md-2">
-        <button class="btn btn-secondary w-100" @click="fetchProducts">
+        <button
+          type="button"
+          class="btn btn-secondary w-100"
+          @click="fetchProductsList"
+        >
           검색
         </button>
       </div>
@@ -87,54 +94,84 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import http from '@/api/http'
+import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
+
+
+import { fetchProducts, fetchBanks, syncProducts } from "@/api/products"
 
 const router = useRouter()
 
 /* 상태 */
 const products = ref([])
-const loading = ref(false)
-const error = ref('')
-
-const productType = ref('DEPOSIT') // DEPOSIT | SAVING
-const bank = ref('전체')
-const term = ref('')
-const q = ref('')
-
 const banks = ref([])
 
-/* 목록 조회 */
-async function fetchProducts() {
+const loading = ref(false)
+const error = ref("")
+
+const productType = ref("DEPOSIT") // DEPOSIT | SAVING
+const bank = ref("전체")
+const term = ref("")
+const q = ref("")
+
+/* 은행 목록 로딩 + (필요시) 자동 sync */
+async function ensureBanksLoaded() {
+  // 1) 은행 목록 먼저 요청 (DB 기반)
+  let bankList = await fetchBanks(productType.value)
+
+  // bankList가 [] 이거나 ["전체"]만 있는 경우(네 백엔드 로직에 따라 조정)
+  const isEmpty =
+    !bankList || bankList.length === 0 || (bankList.length === 1 && bankList[0] === "전체")
+
+  // 2) 비어있으면 sync 실행 후 다시 요청
+  if (isEmpty) {
+    await syncProducts()
+    bankList = await fetchBanks(productType.value)
+  }
+
+  // 3) "전체" 항목은 select에서 고정으로 넣고 있으니, 서버가 포함해서 주면 제거
+  banks.value = (bankList || []).filter((b) => b !== "전체")
+}
+
+/* 상품 목록 조회 */
+async function fetchProductsList() {
   loading.value = true
-  error.value = ''
+  error.value = ""
 
   try {
-    const res = await http.get('/api/products/', {
-      params: {
-        type: productType.value,
-        bank: bank.value,
-        term: term.value,
-        q: q.value,
-      },
+    const data = await fetchProducts(productType.value, {
+      bank: bank.value,
+      term: term.value,
+      q: q.value,
     })
-
-    products.value = res.data
-
-    // 은행 목록 자동 추출
-    banks.value = [...new Set(res.data.map(p => p.kor_co_nm))]
+    products.value = data
   } catch (e) {
-    error.value = '상품 목록을 불러오지 못했습니다.'
+    error.value = "상품 목록을 불러오지 못했습니다."
   } finally {
     loading.value = false
   }
 }
 
-/* 상품 타입 변경 */
-function changeType(type) {
+/* 탭 변경: 타입 바뀌면 은행 목록/상품 목록 재로딩 */
+async function changeType(type) {
+  if (productType.value === type) return
+
   productType.value = type
-  fetchProducts()
+  bank.value = "전체"
+  term.value = ""
+  q.value = ""
+
+  loading.value = true
+  error.value = ""
+
+  try {
+    await ensureBanksLoaded()
+    await fetchProductsList()
+  } catch (e) {
+    error.value = "데이터를 불러오지 못했습니다."
+  } finally {
+    loading.value = false
+  }
 }
 
 /* 상세 페이지 이동 */
@@ -143,7 +180,18 @@ function goDetail(id) {
 }
 
 /* 최초 로딩 */
-onMounted(fetchProducts)
+onMounted(async () => {
+  loading.value = true
+  error.value = ""
+  try {
+    await ensureBanksLoaded()
+    await fetchProductsList()
+  } catch (e) {
+    error.value = "데이터를 불러오지 못했습니다."
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>
