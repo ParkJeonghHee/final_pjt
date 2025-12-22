@@ -9,7 +9,7 @@
         href="#"
         class="text-decoration-none tab-link"
         :class="tab === 'info' ? 'fw-bold text-dark' : 'text-muted'"
-        @click.prevent="tab = 'info'"
+        @click.prevent="switchTab('info')"
       >
         기본 정보 수정
       </a>
@@ -19,7 +19,7 @@
         href="#"
         class="text-decoration-none tab-link"
         :class="tab === 'portfolio' ? 'fw-bold text-dark' : 'text-muted'"
-        @click.prevent="tab = 'portfolio'"
+        @click.prevent="switchTab('portfolio')"
       >
         포트폴리오 수정
       </a>
@@ -29,7 +29,7 @@
         href="#"
         class="text-decoration-none tab-link"
         :class="tab === 'recommend' ? 'fw-bold text-dark' : 'text-muted'"
-        @click.prevent="tab = 'recommend'"
+        @click.prevent="switchTab('recommend')"
       >
         상품 추천 받기
       </a>
@@ -39,7 +39,7 @@
         href="#"
         class="text-decoration-none tab-link"
         :class="tab === 'videos' ? 'fw-bold text-dark' : 'text-muted'"
-        @click.prevent="tab = 'videos'"
+        @click.prevent="switchTab('videos')"
       >
         관심 동영상
       </a>
@@ -128,23 +128,29 @@
             가입한 상품 불러오는 중...
           </div>
 
-          <div v-else-if="joinedProducts.length === 0" class="text-muted mb-3">
-            가입한 상품이 없습니다.
-          </div>
-
           <div v-else>
-            <div class="mb-3">
-              <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
-                {{ idx + 1 }}:
-                <RouterLink :to="`/products/${p.id}`">
-                  ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
-                </RouterLink>
-              </div>
+            <div v-if="joinedErrorMsg" class="text-danger fw-semibold mb-3">
+              {{ joinedErrorMsg }}
             </div>
 
-            <div class="fw-bold mb-2">가입한 상품 금리</div>
-            <div class="border rounded p-3 bg-white">
-              <canvas ref="chartCanvas"></canvas>
+            <div v-if="joinedProducts.length === 0" class="text-muted mb-3">
+              가입한 상품이 없습니다.
+            </div>
+
+            <div v-else>
+              <div class="mb-3">
+                <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
+                  {{ idx + 1 }}:
+                  <RouterLink :to="`/products/${p.id}`">
+                    ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
+                  </RouterLink>
+                </div>
+              </div>
+
+              <div class="fw-bold mb-2">가입한 상품 금리</div>
+              <div class="border rounded p-3 bg-white" style="height: 320px;">
+                <canvas ref="chartCanvas" style="width: 100%; height: 100%;"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -212,9 +218,9 @@
 import { ref, computed, onMounted, nextTick } from "vue"
 import { useAuthStore } from "@/stores/auth"
 import { useSavedVideosStore } from "@/stores/savedVideos"
-import { fetchProfile, updateProfile } from "@/api/accounts"
+import http from "@/api/http"
 import { fetchProductDetail } from "@/api/products"
-import { Chart } from "chart.js/auto"
+import Chart from "chart.js/auto"
 
 const auth = useAuthStore()
 const tab = ref("info")
@@ -237,20 +243,45 @@ const successMsg = ref("")
 
 const joinedProducts = ref([])
 const joinedProductsLoading = ref(false)
+const joinedErrorMsg = ref("")
 const chartCanvas = ref(null)
 let chartInstance = null
+
+function switchTab(next) {
+  tab.value = next
+  if (next === "info") {
+    nextTick(() => {
+      if (joinedProducts.value.length > 0) drawChart()
+    })
+  } else {
+    destroyChart()
+  }
+}
 
 async function loadProfile() {
   loading.value = true
   errorMsg.value = ""
   successMsg.value = ""
+
   try {
-    const res = await fetchProfile()
+    const res = await http.get("/api/accounts/profile/")
     profile.value = res.data
     await loadJoinedProducts()
   } catch (err) {
     const detail = err?.response?.data?.detail
     errorMsg.value = detail || "프로필 정보를 불러오지 못했습니다."
+    profile.value = {
+      id: null,
+      username: "",
+      email: "",
+      nickname: "",
+      age: null,
+      total_assets: null,
+      income: null,
+      joined_products: [],
+    }
+    joinedProducts.value = []
+    destroyChart()
   } finally {
     loading.value = false
   }
@@ -258,15 +289,17 @@ async function loadProfile() {
 
 async function onSaveField(field) {
   if (savingField.value !== null) return
+
   savingField.value = field
   errorMsg.value = ""
   successMsg.value = ""
 
   try {
     const payload = { [field]: profile.value[field] }
-    const res = await updateProfile(payload)
+    const res = await http.patch("/api/accounts/profile/", payload)
     profile.value = res.data
     successMsg.value = "수정이 완료되었습니다."
+    await loadJoinedProducts()
   } catch (err) {
     const data = err?.response?.data
     const detail = data?.detail
@@ -277,21 +310,35 @@ async function onSaveField(field) {
   }
 }
 
+function normalizeJoinedIds(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((x) => {
+      if (x == null) return null
+      if (typeof x === "number") return x
+      if (typeof x === "string") return Number(x)
+      if (typeof x === "object" && x.id != null) return Number(x.id)
+      return null
+    })
+    .filter((v) => Number.isFinite(v))
+}
+
 async function loadJoinedProducts() {
   joinedProductsLoading.value = true
+  joinedErrorMsg.value = ""
   joinedProducts.value = []
 
   try {
-    const ids = profile.value?.joined_products || []
-    if (!ids.length) {
+    const ids = normalizeJoinedIds(profile.value?.joined_products)
+
+    if (ids.length === 0) {
       destroyChart()
       return
     }
 
     const details = await Promise.all(
       ids.map(async (id) => {
-        const res = await fetchProductDetail(id)
-        const d = res.data
+        const d = await fetchProductDetail(id)
 
         let baseRate = 0
         let maxRate = 0
@@ -323,7 +370,11 @@ async function loadJoinedProducts() {
     joinedProducts.value = details
 
     await nextTick()
-    drawChart()
+    if (tab.value === "info") drawChart()
+  } catch (e) {
+    joinedErrorMsg.value = "가입한 상품 정보를 불러오지 못했습니다."
+    joinedProducts.value = []
+    destroyChart()
   } finally {
     joinedProductsLoading.value = false
   }
@@ -357,6 +408,7 @@ function drawChart() {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { position: "top" } },
       scales: { y: { beginAtZero: true } },
     },
