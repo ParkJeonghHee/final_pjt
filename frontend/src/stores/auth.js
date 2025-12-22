@@ -3,7 +3,8 @@ import http from "@/api/http"
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    // ✅ 새로고침해도 username 유지
+
+    // 새로고침해도 username 유지
     user: JSON.parse(localStorage.getItem("user") || "null"),
 
     access: localStorage.getItem("access") || "",
@@ -13,8 +14,6 @@ export const useAuthStore = defineStore("auth", {
   getters: {
     // 기존 getter
     isLoggedIn: (state) => !!state.access,
-
-    // ✅ (선택) 기존 코드 호환용 별칭들
     isLogin: (state) => !!state.access,
     token: (state) => state.access,
     username: (state) => state.user?.username || "",
@@ -30,7 +29,7 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("access", this.access)
       localStorage.setItem("refresh", this.refresh)
 
-      // ✅ username 저장 + 새로고침 대비
+      // username 저장 + 새로고침 대비
       this.user = { username }
       localStorage.setItem("user", JSON.stringify(this.user))
     },
@@ -42,7 +41,7 @@ export const useAuthStore = defineStore("auth", {
 
       localStorage.removeItem("access")
       localStorage.removeItem("refresh")
-      localStorage.removeItem("user") // ✅ 추가
+      localStorage.removeItem("user")
     },
   },
 })
