@@ -11,6 +11,11 @@ class Post(models.Model):
         on_delete = models.CASCADE,
         related_name = "posts"
     )
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name = "liked_posts",
+        blank = True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -29,7 +34,13 @@ class Comment(models.Model):
         on_delete = models.CASCADE,
         related_name = "comments"
     )
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name = "liked_comments",
+        blank = True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return f"Comment({self.id}) on Post({{self.post_id}})"
