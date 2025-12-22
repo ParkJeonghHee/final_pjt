@@ -3,6 +3,7 @@ import http from "@/api/http"
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
+
     // 새로고침해도 username 유지
     user: JSON.parse(localStorage.getItem("user") || "null"),
 
@@ -11,8 +12,8 @@ export const useAuthStore = defineStore("auth", {
   }),
 
   getters: {
+    // 기존 getter
     isLoggedIn: (state) => !!state.access,
-
     isLogin: (state) => !!state.access,
     token: (state) => state.access,
     username: (state) => state.user?.username || "",
