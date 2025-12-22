@@ -65,8 +65,8 @@
           <div class="col-lg-2 col-md-6">
             <h6 class="text-white fw-bold mb-3">상품</h6>
             <ul class="list-unstyled small d-flex flex-column gap-2">
-              <li><a href="#" class="text-decoration-none text-reset">예금 비교</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">적금 비교</a></li>
+              <li><a href="deposits" class="text-decoration-none text-reset">예금 비교</a></li>
+              <li><a href="deposits" class="text-decoration-none text-reset">적금 비교</a></li>
               <li><a href="#" class="text-decoration-none text-reset">대출 상품</a></li>
               <li><a href="#" class="text-decoration-none text-reset">신용카드</a></li>
             </ul>
