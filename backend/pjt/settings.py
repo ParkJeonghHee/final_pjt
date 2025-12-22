@@ -40,6 +40,7 @@ FIN_API_KEY = env("FIN_API_KEY")
 # Application definition
 
 INSTALLED_APPS = [
+    'community',
     'kakao',
     'metals',
     'products',
