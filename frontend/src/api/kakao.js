@@ -1,10 +1,10 @@
-import http from "@/api/http"
+import axios from "axios"
 
 export function getRoute({ originX, originY, destX, destY }) {
-  return http.get("/api/kakao/route/", {
-    params: {
-      origin: `${originX},${originY}`,
-      destination: `${destX},${destY}`,
-    },
+  const origin = `${originX},${originY}`        // lng,lat
+  const destination = `${destX},${destY}`       // lng,lat
+
+  return axios.get("/api/kakao/directions/", {
+    params: { origin, destination },
   })
 }
