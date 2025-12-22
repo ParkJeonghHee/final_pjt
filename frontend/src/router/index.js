@@ -10,9 +10,16 @@ import DepositsView from '@/views/DepositsView.vue'
 import MetalsView from '@/views/MetalsView.vue'
 import StocksView from '@/views/StocksView.vue'
 import MapView from '@/views/MapView.vue'
-import CommunityView from '@/views/CommunityView.vue'
+
 import ProductDetailView from '@/views/ProductDetailView.vue'
 import StockDetailView from '@/views/StockDetailView.vue'
+
+
+import CommunityListView from '@/views/CommunityListView.vue'
+import CommunityDetailView from '@/views/CommunityDetailView.vue'
+import CommunityCreateView from '@/views/CommunityCreateView.vue'
+import CommunityEditView from '@/views/CommunityEditView.vue'
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,9 +32,15 @@ const router = createRouter({
     { path: '/metals', component: MetalsView },
     { path: '/stocks', component: StocksView },
     { path: '/map', component: MapView },
-    { path: '/community', component: CommunityView },
+
     { path: '/products/:id', component: ProductDetailView },
     { path: '/stocks/:videoId', component: StockDetailView},
+
+    { path: '/community', name: 'community-list', component: CommunityListView,},
+    { path: '/community/create', name: 'community-cretae', component: CommunityCreateView,},
+    { path: '/community/:id', name: 'community-detail', component: CommunityDetailView,},
+    { path: '/community/:id/edit', name: 'community-edit', component: CommunityEditView,},
+
   ],
 })
 
