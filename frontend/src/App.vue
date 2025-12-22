@@ -119,6 +119,8 @@ function doLogout() {
   auth.logout()
   router.push('/')
 }
+
+
 </script>
 
 <style scoped>
