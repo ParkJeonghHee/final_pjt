@@ -36,4 +36,9 @@ class FinProductDetailSerializer(serializers.ModelSerializer):
                   "kor_co_nm", 
                   "fin_prdt_cd", 
                   "fin_prdt_nm", 
+                  "join_way",
+                  "join_member",
+                  "join_deny",
+                  "etc_note",
+                  "spcl_cnd",
                   "options"]

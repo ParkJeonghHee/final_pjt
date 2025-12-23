@@ -1,28 +1,48 @@
 <template>
   <main class="container my-4">
-    <h3 class="fw-bold mb-4">예금 · 적금 비교</h3>
+    <!-- ✅ 2번 이미지 느낌: 심플한 타이틀 + 카드형 테이블 -->
 
-    <!-- ✅ 2번처럼: 좌측 필터 + 우측 테이블 (탭은 우측 테이블 박스 상단으로 이동) -->
-    <div class="row g-3">
-      <!-- 좌측 필터 패널 -->
-      <aside class="col-lg-3">
-        <div class="filter-panel p-3">
-          <div class="fw-bold mb-2">{{ productTypeLabel }}</div>
-          <div class="text-muted small mb-3">검색 조건을 입력하세요</div>
+    <!-- 로딩 / 에러 -->
+    <div v-if="loading" class="text-center my-5">불러오는 중...</div>
+    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
 
-          <div class="mb-2">
+    <div v-else class="rate-card">
+      <!-- ✅ 상단 필터(2번처럼 테이블 위로 이동, 좌측 패널 제거) -->
+      <div class="filters">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-3">
+            <label class="form-label small mb-1">상품 타입</label>
+            <div class="btn-group w-100" role="group">
+              <button
+                type="button"
+                class="btn btn-sm"
+                :class="productType === 'DEPOSIT' ? 'btn-primary' : 'btn-outline-primary'"
+                @click="changeType('DEPOSIT')"
+              >
+                정기예금
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                :class="productType === 'SAVING' ? 'btn-primary' : 'btn-outline-primary'"
+                @click="changeType('SAVING')"
+              >
+                정기적금
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
             <label class="form-label small mb-1">은행</label>
-            <select v-model="bank" class="form-select">
+            <select v-model="bank" class="form-select form-select-sm">
               <option value="전체">전체</option>
-              <option v-for="b in banks" :key="b" :value="b">
-                {{ b }}
-              </option>
+              <option v-for="b in banks" :key="b" :value="b">{{ b }}</option>
             </select>
           </div>
 
-          <div class="mb-2">
+          <div class="col-12 col-md-2">
             <label class="form-label small mb-1">예치기간</label>
-            <select v-model="term" class="form-select">
+            <select v-model="term" class="form-select form-select-sm">
               <option value="">전체기간</option>
               <option value="6">6개월</option>
               <option value="12">12개월</option>
@@ -31,65 +51,31 @@
             </select>
           </div>
 
-          <div class="mb-3">
+          <div class="col-12 col-md-4">
             <label class="form-label small mb-1">상품명</label>
             <input
               v-model="q"
-              class="form-control"
+              class="form-control form-control-sm"
               placeholder="상품명 검색"
               @keyup.enter="fetchProductsList"
             />
           </div>
 
-          <!-- 추가 기능: 기간 금리 있는 상품만 -->
-          <div class="form-check mb-3">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="onlyWithTerm"
-              v-model="onlyWithSelectedTerm"
-              :disabled="!term"
-            />
-            <label class="form-check-label small" for="onlyWithTerm">
-              선택 기간 금리 있는 상품만
-            </label>
-          </div>
-
-          <button type="button" class="btn btn-secondary w-100" @click="fetchProductsList">
-            확인
-          </button>
-        </div>
-      </aside>
-
-      <!-- 우측 결과 테이블 -->
-      <section class="col-lg-9">
-        <!-- 로딩 / 에러 -->
-        <div v-if="loading" class="text-center my-5">불러오는 중...</div>
-        <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
-
-        <div v-else class="table-wrap">
-          <!-- ✅ 탭 + 툴바를 테이블 박스 상단으로 (2번 이미지 느낌) -->
-          <div class="table-topbar d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 border-bottom">
-            <div class="btn-group btn-group-sm" role="group" aria-label="product type tabs">
-              <button
-                type="button"
-                class="btn"
-                :class="productType === 'DEPOSIT' ? 'btn-primary' : 'btn-outline-primary'"
-                @click="changeType('DEPOSIT')"
-              >
-                정기예금
-              </button>
-              <button
-                type="button"
-                class="btn"
-                :class="productType === 'SAVING' ? 'btn-primary' : 'btn-outline-primary'"
-                @click="changeType('SAVING')"
-              >
-                정기적금
-              </button>
+          <div class="col-12 d-flex flex-wrap gap-2 align-items-center mt-1">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="onlyWithTerm"
+                v-model="onlyWithSelectedTerm"
+                :disabled="!selectedMonths"
+              />
+              <label class="form-check-label small" for="onlyWithTerm">
+                선택 기간 금리 있는 상품만
+              </label>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
+            <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
               <div class="text-muted small">
                 총 <span class="fw-bold">{{ filteredAndSorted.length }}</span>건
               </div>
@@ -103,65 +89,74 @@
               <button class="btn btn-outline-secondary btn-sm" @click="toggleSortDir">
                 {{ sortDir === "desc" ? "내림차순" : "오름차순" }}
               </button>
+
+              <button type="button" class="btn btn-secondary btn-sm" @click="fetchProductsList">
+                조회
+              </button>
             </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-head">
-                <tr>
-                  <th style="width: 180px">금융회사명</th>
-                  <th>상품명</th>
-                  <th class="text-end" style="width: 90px">6개월</th>
-                  <th class="text-end" style="width: 90px">12개월</th>
-                  <th class="text-end" style="width: 90px">24개월</th>
-                  <th class="text-end" style="width: 90px">36개월</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr
-                  v-for="p in pagedItems"
-                  :key="p.id"
-                  class="clickable-row"
-                  @click="goDetail(p.id)"
-                >
-                  <td class="fw-semibold">{{ p.kor_co_nm }}</td>
-                  <td>{{ p.fin_prdt_nm }}</td>
-
-                  <td class="text-end">{{ rateText(p, 6) }}</td>
-                  <td class="text-end">{{ rateText(p, 12) }}</td>
-                  <td class="text-end">{{ rateText(p, 24) }}</td>
-                  <td class="text-end">{{ rateText(p, 36) }}</td>
-                </tr>
-
-                <tr v-if="filteredAndSorted.length === 0">
-                  <td colspan="6" class="text-center text-muted py-4">
-                    검색 결과가 없습니다.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- 페이지네이션 -->
-          <div class="d-flex justify-content-end align-items-center gap-2 p-2 border-top">
-            <button class="btn btn-outline-secondary btn-sm" :disabled="page === 1" @click="page--">
-              이전
-            </button>
-            <div class="small text-muted">
-              {{ page }} / {{ totalPages }}
-            </div>
-            <button
-              class="btn btn-outline-secondary btn-sm"
-              :disabled="page === totalPages"
-              @click="page++"
-            >
-              다음
-            </button>
           </div>
         </div>
-      </section>
+      </div>
+
+      <!-- ✅ 테이블 -->
+      <div class="table-responsive">
+        <table class="table align-middle mb-0 rate-table">
+          <thead>
+            <tr>
+              <th style="width: 180px">금융회사명</th>
+              <th>상품명</th>
+              <th class="text-end" style="width: 110px">6개월</th>
+              <th class="text-end" style="width: 110px">12개월</th>
+              <th class="text-end" style="width: 110px">24개월</th>
+              <th class="text-end" style="width: 110px">36개월</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="p in pagedItems"
+              :key="p.id"
+              class="row-click"
+              @click="goDetail(p.id)"
+            >
+              <td class="fw-semibold">{{ p.kor_co_nm }}</td>
+              <td class="product-name">{{ p.fin_prdt_nm }}</td>
+
+              <td class="text-end">
+                <span :class="rateClass(p, 6)">{{ rateText(p, 6) }}</span>
+              </td>
+              <td class="text-end">
+                <span :class="rateClass(p, 12)">{{ rateText(p, 12) }}</span>
+              </td>
+              <td class="text-end">
+                <span :class="rateClass(p, 24)">{{ rateText(p, 24) }}</span>
+              </td>
+              <td class="text-end">
+                <span :class="rateClass(p, 36)">{{ rateText(p, 36) }}</span>
+              </td>
+            </tr>
+
+            <tr v-if="filteredAndSorted.length === 0">
+              <td colspan="6" class="text-center text-muted py-5">검색 결과가 없습니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ✅ 2번처럼 하단 가운데 느낌의 페이지네이션 -->
+      <div class="pager">
+        <button class="btn btn-outline-secondary btn-sm" :disabled="page === 1" @click="page--">
+          이전
+        </button>
+        <div class="small text-muted">{{ page }} / {{ totalPages }}</div>
+        <button
+          class="btn btn-outline-secondary btn-sm"
+          :disabled="page === totalPages"
+          @click="page++"
+        >
+          다음
+        </button>
+      </div>
     </div>
   </main>
 </template>
@@ -193,7 +188,8 @@ const sortDir = ref("desc") // desc | asc
 const page = ref(1)
 const pageSize = ref(10)
 
-const productTypeLabel = computed(() => (productType.value === "DEPOSIT" ? "정기예금" : "정기적금"))
+/* ✅ 선택기간(없으면 12개월을 기본 선택처럼 강조) */
+const selectedMonths = computed(() => Number(term.value || 12))
 
 /* 은행 목록 로딩 + (필요시) 자동 sync */
 async function ensureBanksLoaded() {
@@ -209,7 +205,7 @@ async function ensureBanksLoaded() {
   banks.value = (bankList || []).filter((b) => b !== "전체")
 }
 
-/* 상품 목록 조회(서버 필터 기반 유지) */
+/* 상품 목록 조회 */
 async function fetchProductsList() {
   loading.value = true
   error.value = ""
@@ -258,21 +254,18 @@ function goDetail(id) {
 }
 
 /* -----------------------------
-   ✅ 금리 파싱 (안전하게)
+   금리 파싱(안전)
 -------------------------------- */
 function extractRates(p) {
-  // 서버가 평탄화해서 내려주는 경우(있으면 그대로 사용)
   const flat = {
     6: p.rate_6 ?? p.intr_rate_6,
     12: p.rate_12 ?? p.intr_rate_12,
     24: p.rate_24 ?? p.intr_rate_24,
     36: p.rate_36 ?? p.intr_rate_36,
   }
-
   const hasAnyFlat = Object.values(flat).some((v) => v !== undefined && v !== null && v !== "")
   if (hasAnyFlat) return flat
 
-  // 옵션 배열 추정
   const arr =
     p.options ||
     p.depositoptions ||
@@ -287,11 +280,9 @@ function extractRates(p) {
     const t = Number(opt.save_trm ?? opt.term ?? opt.trm ?? opt.month)
     if (![6, 12, 24, 36].includes(t)) continue
 
-    // 우대금리(intr_rate2)가 있으면 그걸 우선 표시, 없으면 기본금리
     const r = opt.intr_rate2 ?? opt.intr_rate ?? opt.rate ?? null
     if (r === null || r === undefined || r === "") continue
 
-    // 같은 기간이 여러개면 최대값 표시
     const num = Number(r)
     if (Number.isFinite(num)) {
       map[t] = map[t] === null ? num : Math.max(map[t], num)
@@ -306,11 +297,11 @@ function rateText(p, months) {
   const v = rates?.[months]
   if (v === null || v === undefined || v === "") return "-"
   const num = Number(v)
-  return Number.isFinite(num) ? num.toFixed(2) : String(v)
+  return Number.isFinite(num) ? `${num.toFixed(2)}%` : String(v)
 }
 
 function selectedTermRate(p) {
-  const t = Number(term.value || 12) // 선택기간 없으면 12 기준으로 정렬
+  const t = selectedMonths.value // 없으면 12
   const rates = extractRates(p)
   const v = rates?.[t]
   const num = Number(v)
@@ -318,14 +309,11 @@ function selectedTermRate(p) {
 }
 
 /* -----------------------------
-   ✅ 클라이언트 추가 기능:
-   - (옵션) 선택기간 금리 있는 상품만
-   - 정렬
+   클라이언트 기능
 -------------------------------- */
 const filteredAndSorted = computed(() => {
   let list = [...(products.value || [])]
 
-  // 선택기간 금리 있는 상품만(옵션)
   if (term.value && onlyWithSelectedTerm.value) {
     const t = Number(term.value)
     list = list.filter((p) => {
@@ -335,7 +323,6 @@ const filteredAndSorted = computed(() => {
     })
   }
 
-  // 정렬
   const dir = sortDir.value === "desc" ? -1 : 1
   list.sort((a, b) => {
     if (sortKey.value === "BANK_ASC") {
@@ -344,7 +331,6 @@ const filteredAndSorted = computed(() => {
     if (sortKey.value === "NAME_ASC") {
       return String(a.fin_prdt_nm).localeCompare(String(b.fin_prdt_nm)) * dir
     }
-    // RATE_DESC(선택기간 기준)
     return (selectedTermRate(b) - selectedTermRate(a)) * dir
   })
 
@@ -352,7 +338,9 @@ const filteredAndSorted = computed(() => {
 })
 
 /* 페이지네이션 */
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredAndSorted.value.length / pageSize.value)))
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredAndSorted.value.length / pageSize.value))
+)
 const pagedItems = computed(() => {
   const start = (page.value - 1) * pageSize.value
   return filteredAndSorted.value.slice(start, start + pageSize.value)
@@ -365,6 +353,27 @@ watch([term, onlyWithSelectedTerm, sortKey, sortDir], () => {
 function toggleSortDir() {
   sortDir.value = sortDir.value === "desc" ? "asc" : "desc"
 }
+
+/* ✅ 2번 이미지처럼: 선택기간(기본 12개월) 컬럼은 빨강, 나머지는 파랑(숫자일 때만) */
+function rateClass(p, months) {
+  const rates = extractRates(p)
+
+  // 현재 셀 값
+  const v = rates?.[months]
+  const num = Number(v)
+  if (!Number.isFinite(num)) return "rate-missing"
+
+  // 행(상품) 기준 6/12/24/36 중 최대값 계산
+  const candidates = [6, 12, 24, 36]
+    .map((m) => Number(rates?.[m]))
+    .filter((x) => Number.isFinite(x))
+
+  const maxRate = candidates.length ? Math.max(...candidates) : -Infinity
+
+  // 최댓값(동률 포함)은 굵게
+  return num === maxRate ? "rate-max" : "rate-base"
+}
+
 
 /* 최초 로딩 */
 onMounted(async () => {
@@ -382,38 +391,80 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 좌측 패널: 색상은 크게 건드리지 않고(배경/테두리 위주) 구조만 */
-.filter-panel {
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
+/* ✅ 2번 이미지 톤: 심플한 제목 */
+.page-title {
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+/* ✅ 카드(white box) + 여백 + 테두리 */
+.rate-card {
   background: #fff;
-}
-
-/* 테이블 래퍼 */
-.table-wrap {
   border: 1px solid #e9ecef;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* ✅ 테이블 상단 헤더 바(탭/툴바가 들어가는 영역) */
-.table-topbar {
-  background: #fff; /* 색상 변경 없이 유지 */
+/* 필터 영역: 카드 상단에 얇은 구분 */
+.filters {
+  padding-bottom: 14px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eef1f4;
 }
 
-/* 헤더는 너무 튀지 않게(색 톤 유지) */
-.table-head th {
+/* 테이블: 2번처럼 헤더 연하게 */
+.rate-table thead th {
   background: #f8f9fa;
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 800;
+  font-size: 0.92rem;
+  border-bottom: 1px solid #e9ecef;
+  white-space: nowrap;
 }
 
-/* 행 클릭 UX */
-.clickable-row {
+.rate-table tbody td {
+  border-bottom: 1px solid #f1f3f5;
+}
+
+/* 상품명 줄바꿈/가독성 */
+.product-name {
+  word-break: keep-all;
+}
+
+/* 행 hover */
+.row-click {
   cursor: pointer;
 }
-.clickable-row:hover {
-  background-color: #f8f9fa;
+.row-click:hover {
+  background: #fbfcfd;
+}
+
+/* ✅ 금리 기본: 검정 + 보통 */
+.rate-base {
+  color: #000;
+  font-weight: 400;
+}
+
+/* ✅ 행(상품) 내 최댓값: 검정 + 굵게 */
+.rate-max {
+  color: #000;
+  font-weight: 700;
+}
+
+/* 없는 값 */
+.rate-missing {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+
+
+/* 페이지네이션: 가운데 정렬 */
+.pager {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
 }
 </style>

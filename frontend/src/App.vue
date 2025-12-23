@@ -68,49 +68,73 @@
       class="py-5"
       style="background-color:#0f172a; color:#94a3b8; position:sticky; bottom:0; margin-top:auto;"
     >
-      <!-- footer 내용 그대로 -->
       <div class="container">
         <div class="row gy-4">
           <div class="col-lg-4 col-md-6">
             <h5 class="text-white fw-bold mb-3">Bankbook</h5>
             <p class="small mb-4">
-              스마트한 금융 생활을 위한<br />
-              최고의 파트너
+              합리적인 금융 의사결정을 돕는<br />
+              비교·분석 플랫폼
             </p>
             <div class="d-flex gap-3">
-              <a href="#" class="text-decoration-none text-secondary"><i class="bi bi-facebook"></i> F</a>
-              <a href="#" class="text-decoration-none text-secondary"><i class="bi bi-twitter"></i> T</a>
-              <a href="#" class="text-decoration-none text-secondary"><i class="bi bi-instagram"></i> I</a>
+              <a href="#" class="text-decoration-none text-secondary" aria-label="facebook">
+                <i class="bi bi-facebook"></i> F
+              </a>
+              <a href="#" class="text-decoration-none text-secondary" aria-label="twitter">
+                <i class="bi bi-twitter"></i> T
+              </a>
+              <a href="#" class="text-decoration-none text-secondary" aria-label="instagram">
+                <i class="bi bi-instagram"></i> I
+              </a>
             </div>
           </div>
 
-          <div class="col-lg-2 col-md-6">
-            <h6 class="text-white fw-bold mb-3">상품</h6>
+          <div class="col-lg-3 col-md-6">
+            <h6 class="text-white fw-bold mb-3">서비스</h6>
             <ul class="list-unstyled small d-flex flex-column gap-2">
-              <li><a href="deposits" class="text-decoration-none text-reset">예금 비교</a></li>
-              <li><a href="deposits" class="text-decoration-none text-reset">적금 비교</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">대출 상품</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">신용카드</a></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/deposits">예·적금 비교</RouterLink></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/metals">금·은 시세</RouterLink></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/stocks">주식 영상</RouterLink></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/map">은행 찾기</RouterLink></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/community">커뮤니티</RouterLink></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <h6 class="text-white fw-bold mb-3">내 계정</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-2">
+              <template v-if="auth.isLoggedIn">
+                <li>
+                  <RouterLink class="text-decoration-none text-reset" to="/profile">
+                    {{ auth.username }} 님 프로필
+                  </RouterLink>
+                </li>
+                <li>
+                  <RouterLink class="text-decoration-none text-reset" to="/profile">가입 상품 보기</RouterLink>
+                </li>
+              </template>
+              <template v-else>
+                <li>
+                  <RouterLink class="text-decoration-none text-reset" to="/login">로그인</RouterLink>
+                </li>
+                <li>
+                  <RouterLink class="text-decoration-none text-reset" to="/signup">회원가입</RouterLink>
+                </li>
+              </template>
             </ul>
           </div>
 
           <div class="col-lg-2 col-md-6">
             <h6 class="text-white fw-bold mb-3">고객지원</h6>
             <ul class="list-unstyled small d-flex flex-column gap-2">
-              <li><a href="#" class="text-decoration-none text-reset">자주 묻는 질문</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">고객센터</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">이용약관</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">개인정보처리방침</a></li>
-            </ul>
-          </div>
-
-          <div class="col-lg-2 col-md-6">
-            <h6 class="text-white fw-bold mb-3">회사</h6>
-            <ul class="list-unstyled small d-flex flex-column gap-2">
-              <li><a href="#" class="text-decoration-none text-reset">회사 소개</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">채용</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">제휴 문의</a></li>
-              <li><a href="#" class="text-decoration-none text-reset">공지사항</a></li>
+              <li><a href="mailto:support@bankbook.local" class="text-decoration-none text-reset">문의하기</a></li>
+              <li><a href="mailto:support@bankbook.local?subject=Bug%20Report" class="text-decoration-none text-reset">버그 제보</a></li>
+              <li><a href="mailto:support@bankbook.local?subject=Feature%20Request" class="text-decoration-none text-reset">기능 제안</a></li>
+              <li>
+                <button type="button" class="btn btn-sm btn-outline-light" @click="scrollToTop">
+                  맨 위로
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -118,11 +142,11 @@
         <hr class="my-4 border-secondary opacity-25" />
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small">
-          <p class="mb-0">© 2024 Bankbook. All rights reserved.</p>
+          <p class="mb-0">© {{ year }} Bankbook. All rights reserved.</p>
           <div class="d-flex gap-3 mt-2 mt-md-0">
-            <a href="#" class="text-decoration-none text-reset">개인정보처리방침</a>
-            <a href="#" class="text-decoration-none text-reset">이용약관</a>
-            <a href="#" class="text-decoration-none text-reset">쿠키 설정</a>
+            <span class="text-reset">개인정보처리방침</span>
+            <span class="text-reset">이용약관</span>
+            <span class="text-reset">쿠키 설정</span>
           </div>
         </div>
       </div>
@@ -141,6 +165,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const isMapRoute = computed(() => route.path === "/map")
+const year = new Date().getFullYear()
 
 const footerEl = ref(null)
 let ro = null
@@ -170,6 +195,10 @@ onBeforeUnmount(() => {
 function doLogout() {
   auth.logout()
   router.push("/")
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" })
 }
 </script>
 
