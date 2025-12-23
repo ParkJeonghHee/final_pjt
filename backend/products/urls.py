@@ -5,6 +5,7 @@ from .views import (
     ProductDetailView, 
     BankListView,
     ProductJoinView,
+    ProductRecommendView,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path("<int:pk>/", ProductDetailView.as_view()),
     path("banks/", BankListView.as_view()),
     path("<int:pk>/join/", ProductJoinView.as_view()),
+    path("recommend/", ProductRecommendView.as_view()),
 ]

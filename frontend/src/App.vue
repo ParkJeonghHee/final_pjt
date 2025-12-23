@@ -60,6 +60,7 @@
 
     <main class="flex-grow-1" :class="isMapRoute ? 'main-map' : 'main-default'">
       <RouterView />
+      <ChatBotWidget />
     </main>
 
     <footer
@@ -130,9 +131,11 @@
 </template>
 
 <script setup>
+import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import ChatBotWidget from '@/components/ChatBotWidget.vue'
 import { computed, onMounted, onBeforeUnmount, ref } from "vue"
-import { RouterLink, RouterView, useRouter, useRoute } from "vue-router"
-import { useAuthStore } from "@/stores/auth"
+
 
 const auth = useAuthStore()
 const router = useRouter()

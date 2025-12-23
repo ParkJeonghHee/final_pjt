@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import environ
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,17 +36,18 @@ DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
 FIN_API_KEY = env("FIN_API_KEY")
-
+GMS_KEY = os.getenv("GMS_KEY")
 
 # Application definition
 
 INSTALLED_APPS = [
+    'chat',
+    'recommend',
     'community',
     'kakao',
     'metals',
     'products',
     'accounts',
-    'pages',
     'corsheaders',
     'rest_framework',
     'django.contrib.admin',
@@ -158,3 +160,4 @@ AUTH_USER_MODEL = "accounts.User"
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
