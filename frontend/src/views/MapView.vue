@@ -9,6 +9,18 @@
           <div class="border rounded p-3">
             <h6 class="fw-bold mb-3">은행 찾기</h6>
 
+            <!-- 출발지 정보 -->
+            <div class="alert alert-info small py-2 px-3 mb-3">
+              <div class="fw-semibold">📍 출발지</div>
+              <div v-if="currentLocation">
+                위도: {{ currentLocation.lat.toFixed(4) }}<br/>
+                경도: {{ currentLocation.lng.toFixed(4) }}
+              </div>
+              <div v-else class="text-muted">
+                위치 요청 중...
+              </div>
+            </div>
+
             <label class="form-label mb-1">광역시/도</label>
             <select class="form-select mb-2" v-model="region">
               <option value="">선택하세요</option>
@@ -52,13 +64,64 @@
             </p>
 
             <!-- 선택 지점 정보(마커 클릭 시) -->
-            <div v-if="selectedPlace" class="mt-3">
+            <div v-if="selectedPlace" class="mt-3 p-3 border rounded bg-light">
               <div class="fw-bold">{{ selectedPlace.place_name }}</div>
               <div class="text-muted small">
                 {{ selectedPlace.road_address_name || selectedPlace.address_name }}
               </div>
 
-              <div v-if="routeInfo" class="text-muted small mt-2">
+              <!-- 경로 옵션 선택 -->
+              <div class="mt-3">
+                <label class="form-label fw-bold small mb-2">🚗 경로 옵션</label>
+                <div class="btn-group w-100" role="group">
+                  <input 
+                    type="radio" 
+                    class="btn-check" 
+                    id="routeAuto" 
+                    name="routeOption" 
+                    value="auto"
+                    v-model="routeOption"
+                  />
+                  <label class="btn btn-outline-primary btn-sm" for="routeAuto">
+                    자동차
+                  </label>
+
+                  <input 
+                    type="radio" 
+                    class="btn-check" 
+                    id="routeWalk" 
+                    name="routeOption" 
+                    value="walk"
+                    v-model="routeOption"
+                  />
+                  <label class="btn btn-outline-primary btn-sm" for="routeWalk">
+                    도보
+                  </label>
+
+                  <input 
+                    type="radio" 
+                    class="btn-check" 
+                    id="routePublic" 
+                    name="routeOption" 
+                    value="public"
+                    v-model="routeOption"
+                  />
+                  <label class="btn btn-outline-primary btn-sm" for="routePublic">
+                    대중교통
+                  </label>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-primary w-100 mt-2 btn-sm"
+                @click="executeRoute"
+              >
+                경로 실행
+              </button>
+
+              <div v-if="routeInfo && routeOption !== 'public'" class="text-muted small mt-2">
+                <strong>경로 정보:</strong><br/>
                 거리: {{ (routeInfo.distance / 1000).toFixed(2) }}km /
                 시간: {{ Math.ceil(routeInfo.duration / 60) }}분
               </div>
@@ -124,17 +187,17 @@ import { getRoute } from "@/api/kakao"
 const mapInfo = ref([])
 const bankInfo = ref([])
 
-// 출발지 멀티캠퍼스 역삼
-const START_LAT = 37.5012743
-const START_LNG = 127.039585
+// GPS로 얻은 사용자 위치
+const currentLocation = ref(null)
 
 const mapEl = ref(null)
 const region = ref("")
 const district = ref("")
 const bank = ref("")
+const routeOption = ref("auto") // auto | walk | public
 
 const isReady = ref(false)
-const message = ref("지도를 불러오는 중입니다...")
+const message = ref("위치를 요청 중입니다...")
 const selectedPlace = ref(null)
 const routeInfo = ref(null)
 
@@ -148,6 +211,8 @@ let ps = null
 let infoWindow = null
 let markers = []
 let routePolyline = null
+let startMarker = null
+let startInfo = null
 
 // placeKey -> marker 매핑(리스트 클릭 시 marker 찾기)
 const markerMap = new Map()
@@ -225,47 +290,222 @@ function destroyAll() {
 }
 
 function drawRoutePolyline(path) {
+  console.log("\n=== [drawRoutePolyline] ✅ 함수 호출됨 ===")
+  // 기존 폴리라인 제거
   clearRoute()
-  const linePath = path.map((p) => new kakaoObj.maps.LatLng(p.y, p.x))
-  routePolyline = new kakaoObj.maps.Polyline({
-    map,
-    path: linePath,
-    strokeWeight: 5,
-    strokeOpacity: 0.9,
-    strokeStyle: "solid",
+
+  // ✅ 입력값 검증
+  console.log("[drawRoutePolyline] 입력값 검증 시작", {
+    pathExists: !!path,
+    pathLength: path?.length,
+    isArray: Array.isArray(path),
   })
+
+  if (!path || path.length === 0) {
+    console.error("[drawRoutePolyline] ❌ 경로 데이터가 없습니다.")
+    return
+  }
+
+  console.log("[drawRoutePolyline] ✅ 경로 데이터 존재")
+
+  // ✅ 카카오 객체 검증
+  if (!kakaoObj || !kakaoObj.maps) {
+    console.error("[drawRoutePolyline] ❌ kakaoObj 미초기화", { kakaoObj })
+    return
+  }
+
+  console.log("[drawRoutePolyline] ✅ kakaoObj 초기화됨")
+
+  // ✅ 지도 객체 검증
+  if (!map) {
+    console.error("[drawRoutePolyline] ❌ map 미초기화")
+    return
+  }
+
+  console.log("[drawRoutePolyline] ✅ map 초기화됨")
+
+  try {
+    console.log("[drawRoutePolyline] 좌표 변환 시작 (LatLng)...")
+    
+    // ✅ 좌표를 LatLng 객체로 변환
+    const linePath = path
+      .map((p, idx) => {
+        if (!p || typeof p.x === "undefined" || typeof p.y === "undefined") {
+          console.warn(`[drawRoutePolyline] ⚠️ 유효하지 않은 좌표[${idx}]:`, p)
+          return null
+        }
+        return new kakaoObj.maps.LatLng(p.y, p.x)
+      })
+      .filter((p) => p !== null)
+
+    console.log(`[drawRoutePolyline] 좌표 변환 완료: ${path.length} → ${linePath.length}개`)
+
+    // ✅ 최소 2개 이상의 좌표 필요
+    if (linePath.length < 2) {
+      console.error("[drawRoutePolyline] ❌ 유효한 좌표 부족:", linePath.length)
+      return
+    }
+
+    console.log("[drawRoutePolyline] ✅ 유효한 좌표 충분함:", linePath.length)
+
+    // ✅ 폴리라인 생성
+    console.log("[drawRoutePolyline] Polyline 객체 생성 중...")
+    
+    routePolyline = new kakaoObj.maps.Polyline({
+      map,
+      path: linePath,
+      strokeWeight: 5,
+      strokeOpacity: 0.9,
+      strokeStyle: "solid",
+      strokeColor: "#FF0000", // 빨간색으로 명확하게 표시
+    })
+
+    console.log("[drawRoutePolyline] ✅ Polyline 객체 생성 완료")
+
+    // ✅ 폴리라인이 정상적으로 생성됐는지 확인
+    if (!routePolyline) {
+      console.error("[drawRoutePolyline] ❌ Polyline 객체가 null")
+      return
+    }
+
+    console.log("[drawRoutePolyline] ✅ Polyline 객체 존재 확인 완료")
+
+    // ✅ Polyline 상태 확인
+    const mapAssigned = routePolyline.getMap()
+    const pathArray = routePolyline.getPath()
+    const pathLength = pathArray?.length || 0
+    const color = routePolyline.getStrokeColor?.()
+    const weight = routePolyline.getStrokeWeight?.()
+
+    console.log("[drawRoutePolyline] ✅ Polyline 상태 확인:", {
+      mapAssigned: mapAssigned !== null && mapAssigned !== undefined,
+      pathLength,
+      color,
+      weight,
+      zIndex: routePolyline.zIndex,
+    })
+
+    if (!mapAssigned) {
+      console.error("[drawRoutePolyline] ⚠️ 경고: Polyline이 map에 할당되지 않음")
+    }
+
+    console.log("\n=== [drawRoutePolyline] ✅ 완료 ===")
+
+  } catch (err) {
+    console.error("[drawRoutePolyline] ❌ 예외 발생:", {
+      message: err.message,
+      name: err.name,
+      stack: err.stack,
+    })
+  }
 }
 
-async function requestRouteToPlace(place) {
+async function requestRouteToPlace(place, priority = "RECOMMEND") {
+  console.log("\n=== [requestRouteToPlace] ✅ 함수 호출됨 ===")
+  
   routeInfo.value = null
   clearRoute()
+
+  if (!currentLocation.value) {
+    message.value = "출발지 위치를 얻을 수 없습니다."
+    console.error("[requestRouteToPlace] ❌ currentLocation 없음")
+    return
+  }
+
+  console.log("[requestRouteToPlace] ✅ currentLocation 확인됨:", currentLocation.value)
 
   const destLng = place.x
   const destLat = place.y
 
-  const res = await getRoute({
-    originX: START_LNG,
-    originY: START_LAT,
-    destX: destLng,
-    destY: destLat,
-  })
+  try {
+    console.log("[requestRouteToPlace] 📍 목적지:", {
+      place: place.place_name,
+      x: destLng,
+      y: destLat,
+    })
 
-  const path = res?.data?.path || []
-  if (path.length === 0) {
-    message.value = "경로 결과가 없습니다."
-    return
-  }
+    console.log("[requestRouteToPlace] 🚀 API 요청 파라미터:", {
+      originX: currentLocation.value.lng,
+      originY: currentLocation.value.lat,
+      destX: destLng,
+      destY: destLat,
+      priority,
+    })
 
-  routeInfo.value = {
-    distance: Number(res.data.distance || 0),
-    duration: Number(res.data.duration || 0),
+    console.log("[requestRouteToPlace] 네트워크 요청 시작...")
+    const res = await getRoute({
+      originX: currentLocation.value.lng,
+      originY: currentLocation.value.lat,
+      destX: destLng,
+      destY: destLat,
+      priority: priority,
+    })
+
+    console.log("[requestRouteToPlace] ✅ API 응답 수신", {
+      status: res.status,
+      statusText: res.statusText,
+      hasData: !!res.data,
+    })
+
+    console.log("[requestRouteToPlace] 응답 상세:", {
+      distance: res.data?.distance,
+      duration: res.data?.duration,
+      pathLength: res.data?.path?.length,
+      priority: res.data?.priority,
+    })
+
+    const path = res?.data?.path || []
+
+    console.log("[requestRouteToPlace] 📊 경로 배열 상태:", {
+      exists: path !== undefined,
+      isNull: path === null,
+      isArray: Array.isArray(path),
+      length: path?.length,
+      isEmpty: path?.length === 0,
+      sampleFirst: path?.[0],
+      sampleLast: path?.[path.length - 1],
+    })
+
+    if (!path || path.length === 0) {
+      message.value = "경로 결과가 없습니다. (빈 경로 배열)"
+      console.error("[requestRouteToPlace] ❌ 빈 경로 배열:", { path })
+      return
+    }
+
+    console.log(`[requestRouteToPlace] ✅ 경로 좌표 개수: ${path.length}개`)
+
+    routeInfo.value = {
+      distance: Number(res.data.distance || 0),
+      duration: Number(res.data.duration || 0),
+    }
+
+    console.log("[requestRouteToPlace] ✅ routeInfo 설정:", routeInfo.value)
+    console.log("[requestRouteToPlace] drawRoutePolyline 함수 호출...")
+
+    drawRoutePolyline(path)
+    
+    console.log("[requestRouteToPlace] ✅ 완료")
+  } catch (e) {
+    console.error("[requestRouteToPlace] ❌ 예외 발생:", {
+      name: e.name,
+      message: e.message,
+      code: e.code,
+    })
+    console.error("[requestRouteToPlace] 응답 에러:", {
+      status: e.response?.status,
+      statusText: e.response?.statusText,
+      data: e.response?.data,
+    })
+    console.error("[requestRouteToPlace] 스택트레이스:", e.stack)
+    
+    message.value = `경로 조회 실패: ${e.response?.data?.detail || e.message}`
   }
-  drawRoutePolyline(path)
 }
 
 async function openPlace(place) {
   selectedPlace.value = place
   routeInfo.value = null
+  routeOption.value = "auto"
 
   const key = placeKey(place)
   const marker = markerMap.get(key)
@@ -281,14 +521,6 @@ async function openPlace(place) {
       </div>`
     )
     infoWindow.open(map, marker)
-  }
-
-  try {
-    await requestRouteToPlace(place)
-    message.value = "선택한 지점의 경로를 표시했습니다."
-  } catch (e) {
-    console.error(e)
-    message.value = "경로를 불러오는 중 오류가 발생했습니다."
   }
 }
 
@@ -332,6 +564,53 @@ function placesSearchCB(data, status) {
   }
 }
 
+async function executeRoute() {
+  console.log("\n=== [executeRoute] ✅ 함수 호출됨 ===")
+  
+  if (!selectedPlace.value || !currentLocation.value) {
+    message.value = "선택된 지점이 없거나 위치를 알 수 없습니다."
+    console.error("[executeRoute] ❌ 입력값 검증 실패:", {
+      selectedPlace: selectedPlace.value,
+      currentLocation: currentLocation.value,
+      hasPlace: !!selectedPlace.value,
+      hasLocation: !!currentLocation.value,
+    })
+    return
+  }
+
+  console.log("[executeRoute] ✅ 입력값 검증 완료", {
+    place: selectedPlace.value.place_name,
+    location: currentLocation.value,
+  })
+
+  console.log("[executeRoute] 📋 routeOption 확인:", routeOption.value)
+
+  if (routeOption.value === "public") {
+    console.log("[executeRoute] 🚌 대중교통 선택됨 (카카오맵 링크 열기)")
+    // 대중교통: 카카오맵 길찾기 링크 열기
+    const kakaoMapUrl = `https://map.kakao.com/link/to/${encodeURIComponent(
+      selectedPlace.value.place_name
+    )},${selectedPlace.value.y},${selectedPlace.value.x}`
+    console.log("[executeRoute] 카카오맵 URL:", kakaoMapUrl)
+    window.open(kakaoMapUrl, "_blank")
+    message.value = "카카오맵 길찾기를 새 탭에서 열었습니다."
+  } else {
+    console.log("[executeRoute] 🚗 백엔드 경로 요청 모드:", routeOption.value)
+    // 자동차/도보: 백엔드 API 호출
+    // 자동차/도보: 백엔드 API 호출
+    const priorityMap = {
+      auto: "RECOMMEND", // 자동차 추천 경로
+      walk: "MIN_TIME", // 도보는 시간 최소화
+    }
+    const priority = priorityMap[routeOption.value] || "RECOMMEND"
+
+    console.log("[executeRoute] 파라미터 매핑:", { routeOption: routeOption.value, priority })
+
+    await requestRouteToPlace(selectedPlace.value, priority)
+    message.value = `${routeOption.value === "auto" ? "자동차" : "도보"} 경로를 표시했습니다.`
+  }
+}
+
 function onSearch() {
   if (!isReady.value || !map || !ps) {
     message.value = "지도가 아직 준비되지 않았습니다."
@@ -358,6 +637,27 @@ function onSearch() {
 }
 
 onMounted(async () => {
+  // 1. GPS 위치 요청
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        currentLocation.value = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }
+        message.value = "위치를 확인했습니다. 데이터를 로드 중입니다..."
+      },
+      (error) => {
+        console.warn("GPS 위치 요청 실패:", error)
+        message.value = "GPS 위치를 얻을 수 없습니다. (권한 확인 필요)"
+        // GPS 실패 시에도 계속 진행
+      }
+    )
+  } else {
+    message.value = "이 브라우저는 Geolocation을 지원하지 않습니다."
+  }
+
+  // 2. 데이터 로드
   try {
     const resp = await fetch("/data.json")
     const d = await resp.json()
@@ -368,6 +668,7 @@ onMounted(async () => {
     message.value = "데이터 로드 실패"
   }
 
+  // 3. 카카오 지도 SDK 확인
   if (!window.kakao || !window.kakao.maps) {
     message.value = "카카오 지도 SDK 로드 실패 (index.html 로드/키/플랫폼 등록 확인)"
     isReady.value = false
@@ -387,29 +688,37 @@ onMounted(async () => {
       return
     }
 
-    const startPos = new kakaoObj.maps.LatLng(START_LAT, START_LNG)
+    // 사용자 GPS 위치 또는 기본값(서울시청) 사용
+    const initialLat = currentLocation.value?.lat || 37.5665
+    const initialLng = currentLocation.value?.lng || 126.978
+    const initialPos = new kakaoObj.maps.LatLng(initialLat, initialLng)
 
     map = new kakaoObj.maps.Map(mapEl.value, {
-      center: startPos,
+      center: initialPos,
       level: 5,
     })
 
     ps = new kakaoObj.maps.services.Places()
     infoWindow = new kakaoObj.maps.InfoWindow({ zIndex: 1 })
 
-    // 출발지 마커(역삼)
-    const startMarker = new kakaoObj.maps.Marker({ map, position: startPos })
-    const startInfo = new kakaoObj.maps.InfoWindow({
-      content: `<div style="padding:6px 8px;font-size:12px;"><b>출발지</b><br/>멀티캠퍼스(역삼)</div>`,
+    // 출발지 마커 표시
+    startMarker = new kakaoObj.maps.Marker({ map, position: initialPos })
+    const markerLabel = currentLocation.value
+      ? "📍 현재 위치"
+      : "📍 기본 위치(서울시청)"
+    startInfo = new kakaoObj.maps.InfoWindow({
+      content: `<div style="padding:6px 8px;font-size:12px;"><b>${markerLabel}</b><br/>위도: ${initialLat.toFixed(4)}<br/>경도: ${initialLng.toFixed(4)}</div>`,
     })
     startInfo.open(map, startMarker)
 
     // 렌더 안정화
     setTimeout(() => {
       map.relayout()
-      map.setCenter(startPos)
+      map.setCenter(initialPos)
       isReady.value = true
-      message.value = "찾기 버튼을 클릭하면 은행 마커가 표시됩니다."
+      message.value = currentLocation.value
+        ? "위치가 확인되었습니다. 은행을 검색해주세요."
+        : "GPS 위치 없음. 기본 위치(서울시청)에서 시작합니다. 은행을 검색해주세요."
     }, 0)
   })
 })
