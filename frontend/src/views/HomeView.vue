@@ -14,7 +14,7 @@
             </p>
             <div class="d-flex justify-content-center justify-content-lg-start gap-3">
               <RouterLink to="/deposits" class="btn btn-primary btn-lg px-4 fw-semibold">상품 비교하기</RouterLink>
-              <RouterLink to="/about" class="btn btn-outline-primary btn-lg px-4 fw-semibold">더 알아보기</RouterLink>
+              <RouterLink to="/stocks" class="btn btn-outline-primary btn-lg px-4 fw-semibold">더 알아보기</RouterLink>
             </div>
           </div>
           <div class="col-lg-6 order-1 order-lg-2 mb-5 mb-lg-0 position-relative">
@@ -76,38 +76,61 @@
               </div>
             </div>
           </div>
+
           <div class="col-md-6 col-lg-4 mx-auto">
             <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift">
-              <img src="@/assets/images/feature-3.png" class="card-img-top" alt="맞춤형 상품 추천">
+              <img src="@/assets/images/feature-3.png" class="card-img-top" alt="맞춤형 상품 추천" />
               <div class="card-body p-4">
                 <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle mb-4">
                   <i class="bi bi-check-circle fs-3"></i>
                 </div>
+
                 <h4 class="card-title fw-bold mb-3">맞춤형 상품 추천</h4>
                 <p class="card-text text-muted mb-4">
                   개인 맞춤형 금융 상품 추천으로 더 나은 선택을 하세요
                 </p>
-                <RouterLink to="/recommendations" class="text-decoration-none fw-semibold stretched-link">
+
+                <a
+                  href="#"
+                  class="text-decoration-none fw-semibold stretched-link"
+                  @click.prevent="goRecommend"
+                >
                   자세히 보기 <i class="bi bi-arrow-right ms-1"></i>
-                </RouterLink>
+                </a>
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </section>
   </div>
 </template>
 
+<script setup>
+import { useRouter } from "vue-router"
+import { useAuthStore } from "@/stores/auth"
+
+const router = useRouter()
+const auth = useAuthStore()
+
+function goRecommend() {
+  if (!auth.isLoggedIn) {
+    router.push("/login")
+    return
+  }
+  router.push({ path: "/profile", query: { tab: "recommend" } }) 
+}
+</script>
+
+
 <style scoped>
-/* Hero 섹션 배경 그라데이션 */
 .hero-section {
   background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
-  padding: 100px 0; /* 상하 여백 */
-  min-height: 80vh; /* 최소 높이 설정 */
+  padding: 100px 0;
+  min-height: 80vh; 
 }
 
-/* 아이콘 박스 공통 스타일 */
 .icon-box {
   width: 64px;
   height: 64px;
@@ -116,13 +139,11 @@
   justify-content: center;
 }
 
-/* 플로팅 카드 위치 조정 */
 .floating-card {
   z-index: 10;
-  left: -30px !important; /* 이미지 위로 살짝 겹치게 */
+  left: -30px !important; 
 }
 
-/* 모바일 환경에서 플로팅 카드 위치 조정 */
 @media (max-width: 991.98px) {
   .hero-section {
     padding: 60px 0;
@@ -137,7 +158,6 @@
   }
 }
 
-/* 카드 호버 효과 */
 .hover-lift {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }

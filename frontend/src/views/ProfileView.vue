@@ -8,10 +8,7 @@
 
     <div class="p-4 border rounded bg-white">
       <ProfileInfoTab v-if="tab === 'info'" />
-      <template v-else-if="tab === 'portfolio'">
-        <h5 class="fw-bold">포트폴리오 수정</h5>
-        <p class="text-muted mb-0">나중에 붙일 예정</p>
-      </template>
+      <ProfilePortfolioTab v-else-if="tab === 'portfolio'" />
       <ProfileRecommendTab v-else-if="tab === 'recommend'" />
       <ProfileVideosTab v-else-if="tab === 'videos'" />
     </div>
@@ -19,14 +16,25 @@
 </template>
 
 <script setup>
-import { ref } from "vue"
+import { ref, watchEffect } from "vue"
+import { useRoute } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 
 import ProfileTabs from "@/components/profile/ProfileTabs.vue"
 import ProfileInfoTab from "@/components/profile/ProfileInfoTab.vue"
+import ProfilePortfolioTab from "@/components/profile/ProfilePortfolioTab.vue"
 import ProfileRecommendTab from "@/components/profile/ProfileRecommendTab.vue"
 import ProfileVideosTab from "@/components/profile/ProfileVideosTab.vue"
 
 const auth = useAuthStore()
+const route = useRoute()
+
 const tab = ref("info")
+
+watchEffect(() => {
+  const q = route.query.tab
+  const next = Array.isArray(q) ? q[0] : q
+  tab.value = next || "info"
+})
 </script>
+

@@ -110,7 +110,7 @@
                   </RouterLink>
                 </li>
                 <li>
-                  <RouterLink class="text-decoration-none text-reset" to="/profile">가입 상품 보기</RouterLink>
+                  <RouterLink class="text-decoration-none text-reset" to="/profile?tab=portfolio">가입 상품 보기</RouterLink>
                 </li>
               </template>
               <template v-else>
