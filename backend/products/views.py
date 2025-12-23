@@ -15,6 +15,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from products.services.recommendation import build_candidates, pick_top
+
 # Create your views here.
 
 DEPOSIT_URL = "https://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json"
@@ -272,3 +274,35 @@ class ProductJoinView(APIView):
 
         request.user.joined_products.add(product)
         return Response({"message": "joined", "product_id": product.id}, status=status.HTTP_201_CREATED)
+
+
+class ProductRecommendView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        priority_type, candidates = build_candidates(request.user)
+        top = pick_top(candidates)
+
+        if not top:
+            return Response({
+                "recommended": [],
+                "summary": "조건에 맞는 추천 상품이 없습니다."
+            })
+
+        return Response({
+            "recommended": [
+                {
+                    "id": p["id"],
+                    "name": p["name"],
+                    "reason": (
+                        f"{p['bank']}의 {p['name']}은 "
+                        f"최고 우대금리 {p['max_rate2']}%로 "
+                        f"현재 조건에서 안정성과 수익성을 동시에 고려한 상품입니다."
+                    )
+                } for p in top
+            ],
+            "summary": (
+                f"현재 사용자 정보 기준으로 "
+                f"{'적금' if priority_type == 'SAVING' else '예금'} 상품을 우선 추천했습니다."
+            )
+        })

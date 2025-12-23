@@ -44,6 +44,7 @@
 
     <main class="flex-grow-1" style="padding-top: 110px;">
       <RouterView />
+      <ChatBotWidget />
     </main>
 
     <footer class="py-5" style="background-color: #0f172a; color: #94a3b8;">
@@ -111,6 +112,7 @@
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ChatBotWidget from '@/components/ChatBotWidget.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

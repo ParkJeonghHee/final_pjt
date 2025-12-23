@@ -23,3 +23,9 @@ export async function syncProducts() {
   const res = await http.post("/api/products/sync/")
   return res.data
 }
+
+// 금융상품 추천
+export async function fetchRecommendation() {
+  const res = await http.post("/api/recommend/")
+  return res.data
+}
