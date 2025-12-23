@@ -1,9 +1,5 @@
 <template>
   <div class="page">
-    <div class="page-head">
-      <h2 class="page-title">은행지도</h2>
-      <p class="page-sub">가까운 은행을 찾아보세요</p>
-    </div>
 
     <div class="grid">
       <aside class="card side-card">
