@@ -42,11 +42,16 @@
       </nav>
     </header>
 
-    <main class="flex-grow-1" style="padding-top: 110px;">
+    <main class="flex-grow-1" :class="isMapRoute ? 'main-map' : 'main-default'">
       <RouterView />
     </main>
 
-    <footer class="py-5" style="background-color: #0f172a; color: #94a3b8;">
+    <footer
+      ref="footerEl"
+      class="py-5"
+      style="background-color:#0f172a; color:#94a3b8; position:sticky; bottom:0; margin-top:auto;"
+    >
+      <!-- footer 내용 그대로 -->
       <div class="container">
         <div class="row gy-4">
           <div class="col-lg-4 col-md-6">
@@ -109,21 +114,68 @@
 </template>
 
 <script setup>
-import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { computed, onMounted, onBeforeUnmount, ref } from "vue"
+import { RouterLink, RouterView, useRouter, useRoute } from "vue-router"
+import { useAuthStore } from "@/stores/auth"
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const isMapRoute = computed(() => route.path === "/map")
+
+const footerEl = ref(null)
+let ro = null
+let onResize = null
+
+onMounted(() => {
+  const setFooterVar = () => {
+    const h = footerEl.value?.offsetHeight || 0
+    document.documentElement.style.setProperty("--app-footer-offset", `${h}px`)
+  }
+
+  setFooterVar()
+  ro = new ResizeObserver(setFooterVar)
+  if (footerEl.value) ro.observe(footerEl.value)
+
+  onResize = () => setFooterVar()
+  window.addEventListener("resize", onResize)
+})
+
+onBeforeUnmount(() => {
+  if (ro && footerEl.value) ro.unobserve(footerEl.value)
+  ro = null
+  if (onResize) window.removeEventListener("resize", onResize)
+  onResize = null
+})
 
 function doLogout() {
   auth.logout()
-  router.push('/')
+  router.push("/")
 }
-
-
 </script>
 
 <style scoped>
+:global(:root) {
+  --app-header-offset: 110px;
+  --app-footer-offset: 0px;
+}
+
+/* 기본 페이지 */
+.main-default {
+  padding-top: var(--app-header-offset);
+  padding-bottom: 80px;
+}
+
+/* ✅ /map 전용: “헤더+푸터를 제외한 영역”을 main 높이로 고정 */
+.main-map {
+  padding-top: var(--app-header-offset);
+  padding-bottom: 0;
+
+  /* footer sticky로 덮는 상황을 원천 차단 */
+  height: calc(100vh - var(--app-header-offset) - var(--app-footer-offset));
+  overflow: hidden; /* 지도/카드가 footer쪽으로 새지 않게 */
+}
+
 /* 푸터 링크 호버 효과 */
 footer a:hover {
   color: #fff !important;
