@@ -16,7 +16,7 @@
       :class="modelValue === 'portfolio' ? 'fw-bold text-dark' : 'text-muted'"
       @click.prevent="$emit('update:modelValue', 'portfolio')"
     >
-      포트폴리오 수정
+      가입한 상품
     </a>
     <span class="divider"> | </span>
 
