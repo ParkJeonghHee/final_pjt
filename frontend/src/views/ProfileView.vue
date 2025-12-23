@@ -60,10 +60,6 @@
             {{ successMsg }}
           </p>
 
-          <div class="mb-3">
-            <label class="form-label">회원번호</label>
-            <input class="form-control" :value="profile.id ?? ''" disabled />
-          </div>
 
           <div class="mb-3">
             <label class="form-label">ID</label>
@@ -119,61 +115,57 @@
               {{ savingField === "income" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
-
-          <hr class="my-4" />
-
-          <h5 class="fw-bold mb-2">가입한 상품들</h5>
-
-          <div v-if="joinedProductsLoading" class="text-muted mb-2">
-            가입한 상품 불러오는 중...
-          </div>
-
-          <div v-if="joinedErrorMsg" class="text-danger fw-semibold mb-2">
-            {{ joinedErrorMsg }}
-          </div>
-
-          <div v-if="!joinedProductsLoading && joinedProducts.length === 0" class="text-muted mb-3">
-            가입한 상품이 없습니다.
-          </div>
-
-          <div v-if="joinedProducts.length > 0" class="mb-3">
-            <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
-              {{ idx + 1 }}:
-              <RouterLink :to="`/products/${p.id}`">
-                ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
-              </RouterLink>
-            </div>
-          </div>
-
-          <div class="fw-bold mb-2" v-if="joinedProducts.length > 0">
-            가입한 상품 금리
-          </div>
-
-          <!-- ✅ 한 페이지(한 줄) 최대 4개씩 보여주기 -->
-          <div v-if="joinedProducts.length > 0" class="d-flex justify-content-between align-items-center mb-2">
-            <div class="text-muted small">
-              {{ currentPage + 1 }} / {{ totalPages }} 페이지 (한 페이지당 {{ pageSize }}개)
-            </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="prevPage">
-                이전
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages - 1" @click="nextPage">
-                다음
-              </button>
-            </div>
-          </div>
-
-          <!-- ✅ canvas는 DOM에서 제거하지 않음 (ref null 방지) -->
-          <div class="border rounded p-3 bg-white chart-wrap" v-show="joinedProducts.length > 0">
-            <canvas ref="chartCanvas" class="chart-canvas"></canvas>
-          </div>
         </div>
       </template>
 
       <template v-else-if="tab === 'portfolio'">
-        <h5 class="fw-bold">포트폴리오 수정</h5>
-        <p class="text-muted mb-0">나중에 붙일 예정</p>
+        <h5 class="fw-bold mb-2">포트폴리오 수정</h5>
+        <hr class="my-4" />
+        
+        <h5 class="fw-bold mb-2">가입한 상품들</h5>
+
+        <div v-if="joinedProductsLoading" class="text-muted mb-2">
+          가입한 상품 불러오는 중...
+        </div>
+
+        <div v-if="joinedErrorMsg" class="text-danger fw-semibold mb-2">
+          {{ joinedErrorMsg }}
+        </div>
+
+        <div v-if="!joinedProductsLoading && joinedProducts.length === 0" class="text-muted mb-3">
+          가입한 상품이 없습니다.
+        </div>
+
+        <div v-if="joinedProducts.length > 0" class="mb-3">
+          <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
+            {{ idx + 1 }}:
+            <RouterLink :to="`/products/${p.id}`">
+              ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
+            </RouterLink>
+          </div>
+        </div>
+
+        <div class="fw-bold mb-2" v-if="joinedProducts.length > 0">
+          가입한 상품 금리
+        </div>
+
+        <div v-if="joinedProducts.length > 0" class="d-flex justify-content-between align-items-center mb-2">
+          <div class="text-muted small">
+            {{ currentPage + 1 }} / {{ totalPages }} 페이지 (한 페이지당 {{ pageSize }}개)
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="prevPage">
+              이전
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages - 1" @click="nextPage">
+              다음
+            </button>
+          </div>
+        </div>
+
+        <div class="border rounded p-3 bg-white chart-wrap" v-show="joinedProducts.length > 0">
+          <canvas ref="chartCanvas" class="chart-canvas"></canvas>
+        </div>
       </template>
 
       <template v-else-if="tab === 'recommend'">
@@ -259,7 +251,7 @@ const joinedErrorMsg = ref("")
 const chartCanvas = ref(null)
 let chartInstance = null
 
-// ✅ (추가) 한 페이지에 최대 4개만 표시
+// ✅ 한 페이지에 최대 4개만 표시
 const pageSize = 4
 const currentPage = ref(0)
 
@@ -286,7 +278,7 @@ function nextPage() {
   }
 }
 
-// ✅ 차트 강제 리사이즈/업데이트 (초기 진입 “안 뜸” 방지)
+// ✅ 차트 강제 리사이즈/업데이트
 function forceChartUpdate() {
   if (!chartInstance) return
   requestAnimationFrame(() => {
@@ -302,7 +294,8 @@ function forceChartUpdate() {
 async function switchTab(next) {
   tab.value = next
 
-  if (next === "info") {
+  // [수정] portfolio 탭으로 갈 때 차트를 그림
+  if (next === "portfolio") {
     await drawChart()
   } else {
     destroyChart()
@@ -398,7 +391,8 @@ function destroyChart() {
 }
 
 async function drawChart() {
-  if (tab.value !== "info") return
+  // [수정] 탭이 portfolio일 때만 실행
+  if (tab.value !== "portfolio") return
   if (pagedProducts.value.length === 0) return
 
   await nextTick()
@@ -413,7 +407,6 @@ async function drawChart() {
 
   destroyChart()
 
-  // ✅ 항상 4칸 고정: 1~3개인 페이지도 4개일 때와 동일한 폭/배치 유지
   const FIXED_SLOTS = pageSize // 4
   const slotLabels = Array(FIXED_SLOTS).fill("")
   const baseData = Array(FIXED_SLOTS).fill(null)
@@ -441,7 +434,7 @@ async function drawChart() {
       plugins: { legend: { position: "top" } },
       scales: {
         y: { beginAtZero: true },
-        x: { offset: true }, // ✅ 슬롯(칸) 고정 느낌 강화
+        x: { offset: true },
       },
     },
   })
@@ -496,7 +489,6 @@ async function loadJoinedProducts() {
 
     joinedProducts.value = details
 
-    // ✅ 가입 목록이 바뀌면 1페이지로 초기화
     currentPage.value = 0
 
     joinedProductsLoading.value = false
@@ -519,7 +511,8 @@ onMounted(async () => {
   window.addEventListener("resize", handleResize)
   await loadProfile()
 
-  if (tab.value === "info" && joinedProducts.value.length > 0) {
+  // [수정] 초기 탭이 portfolio일 경우에만 차트를 그림
+  if (tab.value === "portfolio" && joinedProducts.value.length > 0) {
     await nextTick()
     requestAnimationFrame(() => {
       drawChart()
@@ -532,7 +525,6 @@ onBeforeUnmount(() => {
   destroyChart()
 })
 
-// videos 탭 관련(기존 유지)
 const result = ref("")
 const savedStore = useSavedVideosStore()
 const videos = computed(() => savedStore.list)

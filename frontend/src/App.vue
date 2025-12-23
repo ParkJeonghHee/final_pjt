@@ -25,17 +25,33 @@
             Bankbook
           </RouterLink>
 
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarContent"
+          >
             <span class="navbar-toggler-icon"></span>
           </button>
 
           <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
             <div class="navbar-nav gap-4">
-              <RouterLink class="nav-link text-dark fw-semibold" to="/deposits">예금비교</RouterLink>
-              <RouterLink class="nav-link text-dark fw-semibold" to="/metals">현물상품</RouterLink>
-              <RouterLink class="nav-link text-dark fw-semibold" to="/stocks">주식정보</RouterLink>
-              <RouterLink class="nav-link text-dark fw-semibold" to="/map">은행지도</RouterLink>
-              <RouterLink class="nav-link text-dark fw-semibold" to="/community">게시판</RouterLink>
+              <!-- ✅ 현재 위치(active) 표시용 app-nav-link 클래스 추가 -->
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/deposits">
+                예금비교
+              </RouterLink>
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/metals">
+                현물상품
+              </RouterLink>
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/stocks">
+                주식정보
+              </RouterLink>
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/map">
+                은행지도
+              </RouterLink>
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/community">
+                게시판
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -57,7 +73,7 @@
           <div class="col-lg-4 col-md-6">
             <h5 class="text-white fw-bold mb-3">Bankbook</h5>
             <p class="small mb-4">
-              스마트한 금융 생활을 위한<br>
+              스마트한 금융 생활을 위한<br />
               최고의 파트너
             </p>
             <div class="d-flex gap-3">
@@ -98,7 +114,7 @@
           </div>
         </div>
 
-        <hr class="my-4 border-secondary opacity-25">
+        <hr class="my-4 border-secondary opacity-25" />
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small">
           <p class="mb-0">© 2024 Bankbook. All rights reserved.</p>
@@ -174,6 +190,29 @@ function doLogout() {
   /* footer sticky로 덮는 상황을 원천 차단 */
   height: calc(100vh - var(--app-header-offset) - var(--app-footer-offset));
   overflow: hidden; /* 지도/카드가 footer쪽으로 새지 않게 */
+}
+
+/* ✅ 네비 메뉴: 현재 위치(active) 색칠 표시 */
+.app-nav-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* 정확히 일치하는 경로일 때 (예: /map 일 때 “은행지도”만) */
+.app-nav-link.router-link-exact-active {
+  color: #0d6efd !important;
+  background: rgba(13, 110, 253, 0.12);
+}
+
+/* 하위 경로 포함해서도 활성화 표시가 필요하면 아래 유지 (원하지 않으면 삭제 가능)
+   예: /deposits/123 에서도 “예금비교”를 활성화 */
+.app-nav-link.router-link-active {
+  color: #0d6efd !important;
+}
+
+.app-nav-link:hover {
+  background: rgba(13, 110, 253, 0.08);
 }
 
 /* 푸터 링크 호버 효과 */
