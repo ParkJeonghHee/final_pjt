@@ -76,7 +76,7 @@
               <input class="form-control" v-model="profile.email" placeholder="이메일을 설정해주세요" />
             </div>
             <button class="btn btn-primary" :disabled="savingField !== null" @click="onSaveField('email')">
-              {{ savingField === 'email' ? "수정 중..." : "수정하기" }}
+              {{ savingField === "email" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
 
@@ -86,7 +86,7 @@
               <input class="form-control" v-model="profile.nickname" placeholder="닉네임을 설정해주세요" />
             </div>
             <button class="btn btn-primary" :disabled="savingField !== null" @click="onSaveField('nickname')">
-              {{ savingField === 'nickname' ? "수정 중..." : "수정하기" }}
+              {{ savingField === "nickname" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
 
@@ -96,7 +96,7 @@
               <input class="form-control" v-model.number="profile.age" type="number" min="0" />
             </div>
             <button class="btn btn-primary" :disabled="savingField !== null" @click="onSaveField('age')">
-              {{ savingField === 'age' ? "수정 중..." : "수정하기" }}
+              {{ savingField === "age" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
 
@@ -106,7 +106,7 @@
               <input class="form-control" v-model.number="profile.total_assets" type="number" min="0" />
             </div>
             <button class="btn btn-primary" :disabled="savingField !== null" @click="onSaveField('total_assets')">
-              {{ savingField === 'total_assets' ? "수정 중..." : "수정하기" }}
+              {{ savingField === "total_assets" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
 
@@ -116,7 +116,7 @@
               <input class="form-control" v-model.number="profile.income" type="number" min="0" />
             </div>
             <button class="btn btn-primary" :disabled="savingField !== null" @click="onSaveField('income')">
-              {{ savingField === 'income' ? "수정 중..." : "수정하기" }}
+              {{ savingField === "income" ? "수정 중..." : "수정하기" }}
             </button>
           </div>
 
@@ -124,34 +124,49 @@
 
           <h5 class="fw-bold mb-2">가입한 상품들</h5>
 
-          <div v-if="joinedProductsLoading" class="text-muted mb-3">
+          <div v-if="joinedProductsLoading" class="text-muted mb-2">
             가입한 상품 불러오는 중...
           </div>
 
-          <div v-else>
-            <div v-if="joinedErrorMsg" class="text-danger fw-semibold mb-3">
-              {{ joinedErrorMsg }}
-            </div>
+          <div v-if="joinedErrorMsg" class="text-danger fw-semibold mb-2">
+            {{ joinedErrorMsg }}
+          </div>
 
-            <div v-if="joinedProducts.length === 0" class="text-muted mb-3">
-              가입한 상품이 없습니다.
-            </div>
+          <div v-if="!joinedProductsLoading && joinedProducts.length === 0" class="text-muted mb-3">
+            가입한 상품이 없습니다.
+          </div>
 
-            <div v-else>
-              <div class="mb-3">
-                <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
-                  {{ idx + 1 }}:
-                  <RouterLink :to="`/products/${p.id}`">
-                    ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
-                  </RouterLink>
-                </div>
-              </div>
-
-              <div class="fw-bold mb-2">가입한 상품 금리</div>
-              <div class="border rounded p-3 bg-white" style="height: 320px;">
-                <canvas ref="chartCanvas" style="width: 100%; height: 100%;"></canvas>
-              </div>
+          <div v-if="joinedProducts.length > 0" class="mb-3">
+            <div v-for="(p, idx) in joinedProducts" :key="p.id" class="mb-1">
+              {{ idx + 1 }}:
+              <RouterLink :to="`/products/${p.id}`">
+                ({{ p.type_label }}) {{ p.kor_co_nm }} - {{ p.fin_prdt_nm }}
+              </RouterLink>
             </div>
+          </div>
+
+          <div class="fw-bold mb-2" v-if="joinedProducts.length > 0">
+            가입한 상품 금리
+          </div>
+
+          <!-- ✅ 한 페이지(한 줄) 최대 4개씩 보여주기 -->
+          <div v-if="joinedProducts.length > 0" class="d-flex justify-content-between align-items-center mb-2">
+            <div class="text-muted small">
+              {{ currentPage + 1 }} / {{ totalPages }} 페이지 (한 페이지당 {{ pageSize }}개)
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage === 0" @click="prevPage">
+                이전
+              </button>
+              <button class="btn btn-outline-secondary btn-sm" :disabled="currentPage >= totalPages - 1" @click="nextPage">
+                다음
+              </button>
+            </div>
+          </div>
+
+          <!-- ✅ canvas는 DOM에서 제거하지 않음 (ref null 방지) -->
+          <div class="border rounded p-3 bg-white chart-wrap" v-show="joinedProducts.length > 0">
+            <canvas ref="chartCanvas" class="chart-canvas"></canvas>
           </div>
         </div>
       </template>
@@ -192,12 +207,8 @@
 
               <div class="flex-grow-1">
                 <div class="fw-semibold mb-1">{{ v.title }}</div>
-                <div v-if="v.channelTitle" class="text-muted small">
-                  채널명: {{ v.channelTitle }}
-                </div>
-                <div v-if="v.publishedAt" class="text-muted small mb-2">
-                  업로드 날짜: {{ v.publishedAt }}
-                </div>
+                <div v-if="v.channelTitle" class="text-muted small">채널명: {{ v.channelTitle }}</div>
+                <div v-if="v.publishedAt" class="text-muted small mb-2">업로드 날짜: {{ v.publishedAt }}</div>
                 <a :href="v.url" target="_blank" rel="noopener" class="small">
                   {{ v.url }}
                 </a>
@@ -215,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue"
+import { ref, computed, onMounted, nextTick, onBeforeUnmount } from "vue"
 import { useAuthStore } from "@/stores/auth"
 import { useSavedVideosStore } from "@/stores/savedVideos"
 import http from "@/api/http"
@@ -244,18 +255,62 @@ const successMsg = ref("")
 const joinedProducts = ref([])
 const joinedProductsLoading = ref(false)
 const joinedErrorMsg = ref("")
+
 const chartCanvas = ref(null)
 let chartInstance = null
 
-function switchTab(next) {
+// ✅ (추가) 한 페이지에 최대 4개만 표시
+const pageSize = 4
+const currentPage = ref(0)
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(joinedProducts.value.length / pageSize))
+})
+
+const pagedProducts = computed(() => {
+  const start = currentPage.value * pageSize
+  return joinedProducts.value.slice(start, start + pageSize)
+})
+
+function prevPage() {
+  if (currentPage.value > 0) {
+    currentPage.value -= 1
+    drawChart()
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value += 1
+    drawChart()
+  }
+}
+
+// ✅ 차트 강제 리사이즈/업데이트 (초기 진입 “안 뜸” 방지)
+function forceChartUpdate() {
+  if (!chartInstance) return
+  requestAnimationFrame(() => {
+    try {
+      chartInstance.resize()
+      chartInstance.update()
+    } catch (e) {
+      // ignore
+    }
+  })
+}
+
+async function switchTab(next) {
   tab.value = next
+
   if (next === "info") {
-    nextTick(() => {
-      if (joinedProducts.value.length > 0) drawChart()
-    })
+    await drawChart()
   } else {
     destroyChart()
   }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 async function loadProfile() {
@@ -263,27 +318,39 @@ async function loadProfile() {
   errorMsg.value = ""
   successMsg.value = ""
 
-  try {
-    const res = await http.get("/api/accounts/profile/")
-    profile.value = res.data
-    await loadJoinedProducts()
-  } catch (err) {
-    const detail = err?.response?.data?.detail
-    errorMsg.value = detail || "프로필 정보를 불러오지 못했습니다."
-    profile.value = {
-      id: null,
-      username: "",
-      email: "",
-      nickname: "",
-      age: null,
-      total_assets: null,
-      income: null,
-      joined_products: [],
+  const MAX_TRY = 3
+
+  for (let attempt = 1; attempt <= MAX_TRY; attempt++) {
+    try {
+      const res = await http.get("/api/accounts/profile/")
+      profile.value = res.data
+      await loadJoinedProducts()
+      loading.value = false
+      return
+    } catch (err) {
+      const status = err?.response?.status
+      if ((status === 401 || status === 403) && attempt < MAX_TRY) {
+        await sleep(150)
+        continue
+      }
+
+      const detail = err?.response?.data?.detail
+      errorMsg.value = detail || "프로필 정보를 불러오지 못했습니다."
+      profile.value = {
+        id: null,
+        username: "",
+        email: "",
+        nickname: "",
+        age: null,
+        total_assets: null,
+        income: null,
+        joined_products: [],
+      }
+      joinedProducts.value = []
+      destroyChart()
+      loading.value = false
+      return
     }
-    joinedProducts.value = []
-    destroyChart()
-  } finally {
-    loading.value = false
   }
 }
 
@@ -323,63 +390,6 @@ function normalizeJoinedIds(raw) {
     .filter((v) => Number.isFinite(v))
 }
 
-async function loadJoinedProducts() {
-  joinedProductsLoading.value = true
-  joinedErrorMsg.value = ""
-  joinedProducts.value = []
-
-  try {
-    const ids = normalizeJoinedIds(profile.value?.joined_products)
-
-    if (ids.length === 0) {
-      destroyChart()
-      return
-    }
-
-    const details = await Promise.all(
-      ids.map(async (id) => {
-        const d = await fetchProductDetail(id)
-
-        let baseRate = 0
-        let maxRate = 0
-
-        if (Array.isArray(d.options) && d.options.length > 0) {
-          const bases = d.options.map((o) => Number(o.intr_rate)).filter((v) => !Number.isNaN(v))
-          const maxs = d.options.map((o) => Number(o.intr_rate2)).filter((v) => !Number.isNaN(v))
-          baseRate = bases.length ? Math.max(...bases) : 0
-          maxRate = maxs.length ? Math.max(...maxs) : 0
-        } else {
-          const b = Number(d.intr_rate)
-          const m = Number(d.intr_rate2)
-          baseRate = Number.isNaN(b) ? 0 : b
-          maxRate = Number.isNaN(m) ? 0 : m
-        }
-
-        return {
-          id: d.id,
-          kor_co_nm: d.kor_co_nm,
-          fin_prdt_nm: d.fin_prdt_nm,
-          type: d.type,
-          type_label: d.type === "DEPOSIT" ? "정기예금" : d.type === "SAVING" ? "정기적금" : "상품",
-          baseRate,
-          maxRate,
-        }
-      })
-    )
-
-    joinedProducts.value = details
-
-    await nextTick()
-    if (tab.value === "info") drawChart()
-  } catch (e) {
-    joinedErrorMsg.value = "가입한 상품 정보를 불러오지 못했습니다."
-    joinedProducts.value = []
-    destroyChart()
-  } finally {
-    joinedProductsLoading.value = false
-  }
-}
-
 function destroyChart() {
   if (chartInstance) {
     chartInstance.destroy()
@@ -387,20 +397,39 @@ function destroyChart() {
   }
 }
 
-function drawChart() {
+async function drawChart() {
+  if (tab.value !== "info") return
+  if (pagedProducts.value.length === 0) return
+
+  await nextTick()
+  await new Promise((r) => requestAnimationFrame(r))
+
   if (!chartCanvas.value) return
-  if (joinedProducts.value.length === 0) return
+
+  const rect = chartCanvas.value.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) {
+    await new Promise((r) => requestAnimationFrame(r))
+  }
 
   destroyChart()
 
-  const labels = joinedProducts.value.map((p) => p.fin_prdt_nm)
-  const baseData = joinedProducts.value.map((p) => p.baseRate)
-  const maxData = joinedProducts.value.map((p) => p.maxRate)
+  // ✅ 항상 4칸 고정: 1~3개인 페이지도 4개일 때와 동일한 폭/배치 유지
+  const FIXED_SLOTS = pageSize // 4
+  const slotLabels = Array(FIXED_SLOTS).fill("")
+  const baseData = Array(FIXED_SLOTS).fill(null)
+  const maxData = Array(FIXED_SLOTS).fill(null)
 
-  chartInstance = new Chart(chartCanvas.value, {
+  pagedProducts.value.forEach((p, i) => {
+    slotLabels[i] = p.fin_prdt_nm || `상품 ${p.id}`
+    baseData[i] = p.baseRate ?? 0
+    maxData[i] = p.maxRate ?? 0
+  })
+
+  const ctx = chartCanvas.value.getContext("2d")
+  chartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels,
+      labels: slotLabels,
       datasets: [
         { label: "기본 금리", data: baseData },
         { label: "최고 우대금리", data: maxData },
@@ -410,15 +439,100 @@ function drawChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { position: "top" } },
-      scales: { y: { beginAtZero: true } },
+      scales: {
+        y: { beginAtZero: true },
+        x: { offset: true }, // ✅ 슬롯(칸) 고정 느낌 강화
+      },
     },
   })
+
+  forceChartUpdate()
+  requestAnimationFrame(forceChartUpdate)
 }
 
-onMounted(() => {
-  loadProfile()
+async function loadJoinedProducts() {
+  joinedProductsLoading.value = true
+  joinedErrorMsg.value = ""
+  joinedProducts.value = []
+  destroyChart()
+
+  try {
+    const ids = normalizeJoinedIds(profile.value?.joined_products)
+
+    if (ids.length === 0) {
+      joinedProductsLoading.value = false
+      await nextTick()
+      destroyChart()
+      return
+    }
+
+    const details = await Promise.all(
+      ids.map(async (id) => {
+        const d = await fetchProductDetail(id)
+
+        const opts = Array.isArray(d?.options) ? d.options : []
+        const baseRates = opts.map((o) => Number(o?.intr_rate)).filter((v) => !Number.isNaN(v))
+        const maxRates = opts.map((o) => Number(o?.intr_rate2)).filter((v) => !Number.isNaN(v))
+
+        const baseRate = baseRates.length ? Math.max(...baseRates) : 0
+        const maxRate = maxRates.length ? Math.max(...maxRates) : 0
+
+        return {
+          id: d?.id,
+          kor_co_nm: d?.kor_co_nm,
+          fin_prdt_nm: d?.fin_prdt_nm,
+          product_type: d?.product_type,
+          type_label:
+            d?.product_type === "DEPOSIT"
+              ? "정기예금"
+              : d?.product_type === "SAVING"
+              ? "정기적금"
+              : "상품",
+          baseRate,
+          maxRate,
+        }
+      })
+    )
+
+    joinedProducts.value = details
+
+    // ✅ 가입 목록이 바뀌면 1페이지로 초기화
+    currentPage.value = 0
+
+    joinedProductsLoading.value = false
+    await drawChart()
+  } catch (e) {
+    console.error(e)
+    joinedErrorMsg.value = "가입한 상품 정보를 불러오지 못했습니다."
+    joinedProducts.value = []
+    joinedProductsLoading.value = false
+    await nextTick()
+    destroyChart()
+  }
+}
+
+function handleResize() {
+  forceChartUpdate()
+}
+
+onMounted(async () => {
+  window.addEventListener("resize", handleResize)
+  await loadProfile()
+
+  if (tab.value === "info" && joinedProducts.value.length > 0) {
+    await nextTick()
+    requestAnimationFrame(() => {
+      drawChart()
+    })
+  }
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleResize)
+  destroyChart()
+})
+
+// videos 탭 관련(기존 유지)
 const result = ref("")
 const savedStore = useSavedVideosStore()
 const videos = computed(() => savedStore.list)
@@ -436,3 +550,14 @@ function doRecommend() {
   result.value = "나중에 알고리즘 적용"
 }
 </script>
+
+<style scoped>
+.chart-wrap {
+  height: 320px;
+}
+.chart-canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+</style>
