@@ -10,9 +10,13 @@ const http = axios.create({
 http.interceptors.request.use(
   (config) => {
     const access = localStorage.getItem("access")
+
     if (access) {
       config.headers.Authorization = `Bearer ${access}`
+    } else {
+      delete config.headers.Authorization
     }
+
     return config
   },
   (error) => Promise.reject(error)
