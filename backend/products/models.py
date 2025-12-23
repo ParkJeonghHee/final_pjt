@@ -11,6 +11,11 @@ class FinProduct(models.Model):
     kor_co_nm = models.CharField(max_length=100)    # 금융회사명
     fin_prdt_nm = models.CharField(max_length=200)  # 상품명
     fin_prdt_cd = models.CharField(max_length=50)   # 상품코드 (고유키 역할)
+    join_way = models.TextField(blank=True)
+    join_member = models.TextField(blank=True)
+    join_deny = models.TextField(blank=True)
+    etc_note = models.TextField(blank=True)
+    spcl_cnd = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

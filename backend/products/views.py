@@ -74,16 +74,42 @@ def sync_products():
                 defaults={
                     "kor_co_nm": b.get("kor_co_nm", ""),
                     "fin_prdt_nm": b.get("fin_prdt_nm", ""),
+                    "join_way": b.get("join_way", ""),
+                    "join_member": b.get("join_member", ""),
+                    "join_deny": b.get("join_deny", ""),
+                    "etc_note": b.get("etc_note", ""),
+                    "spcl_cnd": b.get("spcl_cnd", ""),
                 },
             )
 
-            # 이미 있으면 회사/상품명 최신값으로 업데이트
+            # ??/??? ? ?? ?? ????? ????
             if not created:
                 new_kor = b.get("kor_co_nm", obj.kor_co_nm)
                 new_nm = b.get("fin_prdt_nm", obj.fin_prdt_nm)
-                if obj.kor_co_nm != new_kor or obj.fin_prdt_nm != new_nm:
+                new_join_way = b.get("join_way", obj.join_way)
+                new_join_member = b.get("join_member", obj.join_member)
+                new_join_deny = b.get("join_deny", obj.join_deny)
+                new_etc_note = b.get("etc_note", obj.etc_note)
+                new_spcl_cnd = b.get("spcl_cnd", obj.spcl_cnd)
+
+                changed = (
+                    obj.kor_co_nm != new_kor
+                    or obj.fin_prdt_nm != new_nm
+                    or obj.join_way != new_join_way
+                    or obj.join_member != new_join_member
+                    or obj.join_deny != new_join_deny
+                    or obj.etc_note != new_etc_note
+                    or obj.spcl_cnd != new_spcl_cnd
+                )
+
+                if changed:
                     obj.kor_co_nm = new_kor
                     obj.fin_prdt_nm = new_nm
+                    obj.join_way = new_join_way
+                    obj.join_member = new_join_member
+                    obj.join_deny = new_join_deny
+                    obj.etc_note = new_etc_note
+                    obj.spcl_cnd = new_spcl_cnd
                     obj.save()
 
             if created:

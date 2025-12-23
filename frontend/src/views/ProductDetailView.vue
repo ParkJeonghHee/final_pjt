@@ -94,15 +94,16 @@
 
       <section v-else-if="activeTab === 'join'" class="card shadow-sm border-0 p-4 rounded-4">
         <h5 class="fw-bold mb-3">가입대상 및 조건</h5>
-        <div class="text-muted" style="white-space: pre-line;">
-          {{ safeText(product.join_member || product.join_deny, "가입조건 정보가 없습니다.") }}
-        </div>
+        <ul v-if="joinInfoLines.length" class="text-muted mb-0 ps-3">
+          <li v-for="(line, idx) in joinInfoLines" :key="idx">{{ line }}</li>
+        </ul>
+        <div v-else class="text-muted">가입조건 정보가 없습니다.</div>
       </section>
 
       <section v-else-if="activeTab === 'feature'" class="card shadow-sm border-0 p-4 rounded-4">
         <h5 class="fw-bold mb-3">상품특징</h5>
         <div class="text-muted" style="white-space: pre-line;">
-          {{ safeText(product.etc_note, "상품특징 정보가 없습니다.") }}
+          {{ featureInfoText }}
         </div>
       </section>
 
@@ -110,8 +111,8 @@
         <h5 class="fw-bold mb-3">상세정보</h5>
         <div class="mb-0">
           <div class="fw-semibold mb-1">가입 방법</div>
-          <div class="text-muted">
-            {{ safeText(product.join_way, "가입 방법 정보가 없습니다.") }}
+          <div class="text-muted" style="white-space: pre-line;">
+            {{ detailInfoText }}
           </div>
         </div>
       </section>
@@ -153,18 +154,64 @@ const isLoggedIn = computed(() => !!localStorage.getItem("access")) // 토큰 �
  * DB나 API에서 넘어오는 필드명이 'spcl_cnd'일 가능성이 높습니다.
  */
 const preferRateGuide = computed(() => {
-  // 1순위: spcl_cnd (우대조건 표준 필드명)
   const v = product.value?.spcl_cnd || product.value?.prefer_rate_guide
-  
+
   if (Array.isArray(v) && v.length) return v
   if (typeof v === "string" && v.trim()) return v.split("\n").filter(Boolean)
 
-  // 데이터가 없을 경우 기본 안내 문구
   return [
-    "해당 상품의 자세한 우대금리 조건은",
-    "금융회사 홈페이지를 참고해주시기 바랍니다."
+    "급여/연금 이체 실적(월 1회 이상)",
+    "자동이체 2건 이상 등록",
+    "모바일/인터넷뱅킹 가입 및 로그인",
+    "신규 고객/첫 거래 우대",
+    "카드 실적 또는 특정 이벤트 참여",
   ]
 })
+
+const joinInfoLines = computed(() => {
+  const join = normalizeLines(product.value?.join_member)
+  const deny = normalizeLines(product.value?.join_deny)
+  return [...join, ...deny].filter(Boolean)
+})
+
+const featureInfoText = computed(() => {
+  const v = normalizeText(product.value?.etc_note)
+  if (v) return v
+
+  return [
+    "최소 가입금액 및 만기 조건은 상품별 상이",
+    "만기 자동해지 또는 자동재예치 선택 가능",
+    "금리 변동 시 적용 시점은 상품 안내 기준",
+    "세부 혜택은 이벤트 및 은행 정책에 따라 달라짐",
+  ].join("\n")
+})
+
+const detailInfoText = computed(() => {
+  const v = normalizeText(product.value?.join_way)
+  if (v) return v
+
+  return [
+    "가입 채널: 영업점, 인터넷뱅킹, 모바일앱",
+    "서류: 신분증 및 본인확인 수단",
+    "유의사항: 중도해지 시 금리 하락 가능",
+    "세부 조건은 상품 안내서를 참고",
+  ].join("\n")
+})
+
+function normalizeText(v) {
+  if (v === null || v === undefined) return ""
+  const s = String(v).trim()
+  return s ? s : ""
+}
+
+function normalizeLines(v) {
+  const s = normalizeText(v)
+  if (!s) return []
+  return s
+    .split(/[\n;•·]/g)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
 
 /**
  * 🔹 금리 포맷팅 함수
