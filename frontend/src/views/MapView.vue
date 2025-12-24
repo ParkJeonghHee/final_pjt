@@ -134,13 +134,6 @@
                   </button>
                   <button
                     class="btn btn-sm"
-                    :class="routeMode==='walk' ? 'btn-primary' : 'btn-outline-primary'"
-                    @click="routeMode='walk'; requestRoute()"
-                  >
-                    도보
-                  </button>
-                  <button
-                    class="btn btn-sm"
                     :class="routeMode==='transit' ? 'btn-primary' : 'btn-outline-primary'"
                     @click="routeMode='transit'; requestRoute()"
                   >
@@ -190,6 +183,7 @@ const mapEl = ref(null)
 let kakaoObj = null
 let map = null
 let ps = null
+let geocoder = null
 let infoWindow = null
 let markers = []
 let routePolyline = null
@@ -218,7 +212,7 @@ watch(selectedSido, () => {
 })
 
 function formatKm(km) {
-  if (!km) return "-"
+  if (km == null) return "-"
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`
 }
 
@@ -243,6 +237,7 @@ function clearResults() {
   selectedPlace.value = null
   routeInfo.value = null
   clearRoute()
+  clearMarkers()
 }
 
 function clearRoute() {
@@ -267,18 +262,44 @@ function destroyAll() {
   startInfo = null
   infoWindow = null
   ps = null
+  geocoder = null
   map = null
   kakaoObj = null
 }
 
+/**
+ * ✅ 변경 포인트:
+ * - 경로를 그린 뒤, path 전체 + 출발/도착을 포함한 bounds를 만들고
+ * - map.setBounds(bounds, padding)으로 "전체 경로가 한 눈에 보이게" 줌아웃
+ */
 function drawRoutePolyline(path) {
   clearRoute()
-  if (!path?.length || !kakaoObj || !map) return
+  if (!Array.isArray(path) || !path.length || !kakaoObj || !map) return
 
-  const linePath = path
-    .map((p) => (p && p.x != null && p.y != null ? new kakaoObj.maps.LatLng(p.y, p.x) : null))
-    .filter(Boolean)
+  // ✅ path 원소에서 x/y(또는 lng/lat 등) 안전하게 뽑아오기
+  const toLatLng = (p) => {
+    if (!p) return null
 
+    // 1) { x, y } 형태
+    let x = p.x ?? p.lng ?? p.lon ?? p.longitude
+    let y = p.y ?? p.lat ?? p.latitude
+
+    // 2) [x, y] 형태 대비
+    if (Array.isArray(p) && p.length >= 2) {
+      x = p[0]
+      y = p[1]
+    }
+
+    x = Number(x)
+    y = Number(y)
+
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+    return new kakaoObj.maps.LatLng(y, x)
+  }
+
+  const linePath = path.map(toLatLng).filter(Boolean)
+
+  // ✅ 유효한 점이 2개 미만이면 그리지 말기 (NaN 방지)
   if (linePath.length < 2) return
 
   routePolyline = new kakaoObj.maps.Polyline({
@@ -289,7 +310,18 @@ function drawRoutePolyline(path) {
     strokeStyle: "solid",
     strokeColor: "#FF0000",
   })
+
+  // ✅ bounds 계산
+  const bounds = new kakaoObj.maps.LatLngBounds()
+  linePath.forEach((latlng) => bounds.extend(latlng))
+
+  // ✅ setBounds: (bounds, top, right, bottom, left) 숫자로 padding 주기
+  // 왼쪽 패널 때문에 left를 크게
+  map.setBounds(bounds, 60, 60, 60, 420)
+
+  requestAnimationFrame(() => map && map.relayout())
 }
+
 
 async function requestRoute() {
   if (!selectedPlace.value || !currentLocation.value) {
@@ -306,15 +338,13 @@ async function requestRoute() {
   routeInfo.value = null
   clearRoute()
 
-  const priority = routeMode.value === "walk" ? "MIN_TIME" : "RECOMMEND"
-
   try {
     const res = await getRoute({
       originX: currentLocation.value.lng,
       originY: currentLocation.value.lat,
       destX: selectedPlace.value.x,
       destY: selectedPlace.value.y,
-      priority,
+      priority: "RECOMMEND",
     })
 
     const path = res?.data?.path || []
@@ -334,14 +364,96 @@ async function requestRoute() {
   }
 }
 
-function onSearch() {
+
+
+function getRegionText() {
+  const parts = []
+  if (selectedSido.value) parts.push(selectedSido.value)
+  if (selectedSigungu.value) parts.push(selectedSigungu.value)
+  return parts.join(" ").trim()
+}
+
+function geocodeAddress(address) {
+  return new Promise((resolve) => {
+    if (!geocoder || !address) return resolve(null)
+    geocoder.addressSearch(address, (result, status) => {
+      if (status === kakaoObj.maps.services.Status.OK && result?.length) {
+        const x = parseFloat(result[0].x)
+        const y = parseFloat(result[0].y)
+        if (!Number.isNaN(x) && !Number.isNaN(y)) return resolve({ x, y })
+      }
+      resolve(null)
+    })
+  })
+}
+
+async function getSearchCenterLatLng() {
+  const regionText = getRegionText()
+  if (regionText) {
+    const geo = await geocodeAddress(regionText)
+    if (geo && map) {
+      const pos = new kakaoObj.maps.LatLng(geo.y, geo.x)
+      map.setCenter(pos)
+      map.setLevel(7)
+      return pos
+    }
+  }
+
+  if (map) return map.getCenter()
+  return null
+}
+
+function convertPlaces(data) {
+  return (data || []).map((place) => ({
+    id: place.id || `${place.x}:${place.y}`,
+    name: place.place_name,
+    address: place.road_address_name || place.address_name,
+    x: parseFloat(place.x),
+    y: parseFloat(place.y),
+    distanceKm: place.distance ? Number(place.distance) / 1000 : null,
+  }))
+}
+
+function applySearchResults(converted) {
+  results.value = converted
+  clearMarkers()
+
+  if (!converted.length) return
+
+  const bounds = new kakaoObj.maps.LatLngBounds()
+  converted.forEach((place) => {
+    const pos = new kakaoObj.maps.LatLng(place.y, place.x)
+    const marker = new kakaoObj.maps.Marker({ map, position: pos })
+    markers.push(marker)
+    bounds.extend(pos)
+    marker.addListener("click", () => selectPlace(place))
+  })
+
+  map.setBounds(bounds)
+  requestAnimationFrame(() => map && map.relayout())
+}
+
+async function keywordSearchWithOptions(query, options) {
+  return new Promise((resolve) => {
+    ps.keywordSearch(
+      query,
+      (data, status) => {
+        resolve({ data, status })
+      },
+      options
+    )
+  })
+}
+
+async function onSearch() {
   if (!map || !ps) {
     alert("지도가 준비되지 않았습니다")
     return
   }
 
-  const searchKeyword =
-    keyword.value.trim() || `${selectedSido.value} ${selectedSigungu.value} ${selectedBank.value}`
+  const typed = keyword.value.trim()
+  const fallbackQuery = `${selectedSido.value} ${selectedSigungu.value} ${selectedBank.value}`.trim()
+  const searchKeyword = typed || fallbackQuery
 
   if (!searchKeyword.trim()) {
     alert("검색어를 입력하세요")
@@ -349,45 +461,42 @@ function onSearch() {
   }
 
   clearResults()
-  const center = map.getCenter()
 
-  ps.keywordSearch(
-    searchKeyword,
-    (data, status) => {
-      if (status === kakaoObj.maps.services.Status.OK) {
-        const converted = data.map((place) => ({
-          id: place.id || `${place.x}:${place.y}`,
-          name: place.place_name,
-          address: place.road_address_name || place.address_name,
-          x: parseFloat(place.x),
-          y: parseFloat(place.y),
-          distanceKm: place.distance ? Number(place.distance) / 1000 : null,
-        }))
+  const center = await getSearchCenterLatLng()
 
-        results.value = converted
+  let res1 = null
+  if (center) {
+    res1 = await keywordSearchWithOptions(searchKeyword, {
+      location: center,
+      radius: 20000,
+      sort: kakaoObj.maps.services.SortBy.DISTANCE,
+    })
+  } else {
+    res1 = await keywordSearchWithOptions(searchKeyword, undefined)
+  }
 
-        clearMarkers()
-        const bounds = new kakaoObj.maps.LatLngBounds()
+  if (res1.status === kakaoObj.maps.services.Status.OK && res1.data?.length) {
+    applySearchResults(convertPlaces(res1.data))
+    return
+  }
 
-        converted.forEach((place) => {
-          const pos = new kakaoObj.maps.LatLng(place.y, place.x)
-          const marker = new kakaoObj.maps.Marker({ map, position: pos })
-          markers.push(marker)
-          bounds.extend(pos)
-          marker.addListener("click", () => selectPlace(place))
-        })
+  const res2 = await keywordSearchWithOptions(searchKeyword, undefined)
+  if (res2.status === kakaoObj.maps.services.Status.OK) {
+    const converted = convertPlaces(res2.data)
+    applySearchResults(converted)
 
-        map.setBounds(bounds)
-        requestAnimationFrame(() => map && map.relayout())
-      } else if (status === kakaoObj.maps.services.Status.ZERO_RESULT) {
-        results.value = []
-        alert("검색 결과가 없습니다")
-      } else {
-        alert("검색 중 오류가 발생했습니다")
-      }
-    },
-    { location: center, radius: 5000, sort: kakaoObj.maps.services.SortBy.DISTANCE }
-  )
+    if (!converted.length) {
+      alert("검색 결과가 없습니다")
+    }
+    return
+  }
+
+  if (res2.status === kakaoObj.maps.services.Status.ZERO_RESULT) {
+    alert("검색 결과가 없습니다")
+    return
+  }
+
+  alert("검색 중 오류가 발생했습니다")
 }
 
 onMounted(async () => {
@@ -427,6 +536,7 @@ onMounted(async () => {
 
     map = new kakaoObj.maps.Map(mapEl.value, { center: initialPos, level: 5 })
     ps = new kakaoObj.maps.services.Places()
+    geocoder = new kakaoObj.maps.services.Geocoder()
     infoWindow = new kakaoObj.maps.InfoWindow({ zIndex: 1 })
 
     startMarker = new kakaoObj.maps.Marker({ map, position: initialPos })
@@ -447,7 +557,6 @@ onUnmounted(() => destroyAll())
 </script>
 
 <style scoped>
-/* ✅ /map main이 높이를 고정해줬기 때문에 여기서는 100%로 채우기만 하면 됨 */
 .page {
   height: 100%;
   max-width: 1320px;
@@ -458,21 +567,6 @@ onUnmounted(() => destroyAll())
   min-height: 0;
 }
 
-.page-head {
-  margin-bottom: 14px;
-}
-.page-title {
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0;
-}
-.page-sub {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-/* ✅ 남은 영역을 grid가 먹도록 */
 .grid {
   flex: 1;
   min-height: 0;
@@ -480,7 +574,7 @@ onUnmounted(() => destroyAll())
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 18px;
-  align-items: stretch; /* ✅ 두 카드 높이 맞춤 */
+  align-items: stretch;
 }
 
 .card {
@@ -492,7 +586,7 @@ onUnmounted(() => destroyAll())
 
 .side-card {
   padding: 18px;
-  height: 100%;     /* ✅ 100vh 계산 제거 */
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -590,7 +684,7 @@ onUnmounted(() => destroyAll())
 
 .map-card {
   overflow: hidden;
-  height: 100%;   /* ✅ 100vh 계산 제거 */
+  height: 100%;
   min-height: 0;
 }
 
@@ -603,7 +697,7 @@ onUnmounted(() => destroyAll())
 
 .map-card-body {
   padding: 14px 16px 16px;
-  height: calc(100% - 52px); /* head 높이만큼(대략) */
+  height: calc(100% - 52px);
   min-height: 0;
 }
 
@@ -613,7 +707,7 @@ onUnmounted(() => destroyAll())
   overflow: hidden;
   border: 1px solid #eef1f3;
 
-  height: 100%;   /* ✅ 100vh 제거 */
+  height: 100%;
   min-height: 0;
 
   background: linear-gradient(180deg, #fbfaf9 0%, #f7f6f5 100%);
