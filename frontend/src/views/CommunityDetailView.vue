@@ -85,24 +85,25 @@
 
         <div v-else class="list-group">
           <div class="list-group-item" v-for="c in comments" :key="c.id">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="w-100">
+            <!-- ✅ 여기 레이아웃 수정: 왼쪽은 flex-grow, 오른쪽은 절대 안 찌그러지게 -->
+            <div class="d-flex align-items-start gap-3">
+              <!-- 왼쪽(내용) -->
+              <div class="flex-grow-1">
                 <div class="small text-muted mb-1">
                   {{ c.author_username }} · {{ formatDate(c.created_at) }}
-                  <span
-                    v-if="shouldShowCommentUpdated(c)"
-                    class="ms-2"
-                  >
+                  <span v-if="shouldShowCommentUpdated(c)" class="ms-2">
                     (수정: {{ formatDate(c.updated_at) }})
                   </span>
                 </div>
 
+                <!-- 수정 모드 -->
                 <div v-if="editCommentId === c.id">
                   <textarea
                     class="form-control mb-2"
                     rows="2"
                     v-model="editCommentText"
                   ></textarea>
+
                   <div class="d-flex gap-2">
                     <button
                       class="btn btn-success btn-sm"
@@ -119,6 +120,7 @@
                   </div>
                 </div>
 
+                <!-- 일반 모드 -->
                 <div v-else style="white-space: pre-wrap">
                   {{ c.content }}
                 </div>
@@ -133,26 +135,25 @@
                 </button>
               </div>
 
-              <!-- 본인 댓글 -->
-              <div class="ms-3" v-if="isMyComment(c)">
-                <div class="d-flex gap-2">
-                  <button
-                    class="btn btn-outline-success btn-sm"
-                    @click="startEditComment(c)"
-                  >
-                    수정
-                  </button>
-                  <button
-                    class="btn btn-outline-danger btn-sm"
-                    @click="onDeleteComment(c.id)"
-                  >
-                    삭제
-                  </button>
-                </div>
+              <!-- 오른쪽(본인 댓글 버튼) -->
+              <div v-if="isMyComment(c)" class="comment-actions">
+                <button
+                  class="btn btn-outline-success btn-sm comment-action-btn"
+                  @click="startEditComment(c)"
+                >
+                  수정
+                </button>
+                <button
+                  class="btn btn-outline-danger btn-sm comment-action-btn"
+                  @click="onDeleteComment(c.id)"
+                >
+                  삭제
+                </button>
               </div>
             </div>
           </div>
         </div>
+        <!-- 댓글 리스트 끝 -->
       </div>
     </div>
   </main>
@@ -272,3 +273,17 @@ function shouldShowCommentUpdated(comment) {
 
 onMounted(loadDetail)
 </script>
+
+<style scoped>
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.comment-action-btn {
+  white-space: nowrap;
+  min-width: 64px;
+}
+</style>

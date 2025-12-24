@@ -42,6 +42,7 @@ BOK_API_KEY = env("BOK_API_KEY", default="")
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework_simplejwt.token_blacklist',
     'market',
     'loans',
     'chat',
@@ -160,7 +161,20 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = "accounts.User"
 
+
+from datetime import timedelta
+
+from datetime import timedelta
+
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
+
+    # 토큰 만료 시간 조정
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
+
 
