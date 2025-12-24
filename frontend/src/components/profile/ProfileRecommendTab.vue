@@ -5,15 +5,17 @@
       사용자 정보(나이/소득/자산)와 미가입 상품/우대금리 상위 후보군을 기반으로 추천합니다.
     </p>
 
+    <!-- 버튼 영역: 예금(파랑) / 대출(초록)로 시각 구분 -->
     <div class="d-flex flex-wrap gap-2">
-      <button class="btn btn-primary" :disabled="recommendLoading" @click="doRecommend">
+      <button class="btn btn-outline-primary" :disabled="recommendLoading" @click="doRecommend">
         {{ recommendLoading ? "추천 생성 중..." : "예금/적금 추천 받기" }}
       </button>
-      <button class="btn btn-outline-primary" :disabled="loanRecommendLoading" @click="doLoanRecommend">
+      <button class="btn btn-outline-success" :disabled="loanRecommendLoading" @click="doLoanRecommend">
         {{ loanRecommendLoading ? "추천 생성 중..." : "대출 추천 받기" }}
       </button>
     </div>
 
+    <!-- 에러 -->
     <p v-if="recommendError" class="text-danger fw-semibold mt-2 mb-0">
       {{ recommendError }}
     </p>
@@ -21,53 +23,94 @@
       {{ loanRecommendError }}
     </p>
 
-    <div v-if="recommendSummary" class="alert alert-secondary mt-3 mb-0">
-      {{ recommendSummary }}
-    </div>
-
-    <div v-if="loanRecommendSummary" class="alert alert-secondary mt-3 mb-0">
-      {{ loanRecommendSummary }}
-    </div>
-
-    <div v-if="recommendedList.length" class="mt-3">
-      <div class="p-3 border rounded bg-white mb-2" v-for="(r, idx) in recommendedList" :key="r.id">
-        <div class="fw-semibold">
-          {{ idx + 1 }}) {{ r.name }}
-          <RouterLink class="ms-2 small" :to="`/products/${r.id}`">상세보기</RouterLink>
+    <!-- ✅ 결과 영역: 카드 2개로 확실히 분리 -->
+    <div class="mt-3 d-grid gap-3">
+      <!-- 예금/적금 섹션 -->
+      <section v-if="recommendSummary || recommendedList.length" class="result-card result-card--deposit">
+        <div class="result-card__head">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-primary">예금/적금</span>
+            <span class="fw-bold">추천 결과</span>
+            <span v-if="recommendedList.length" class="text-muted small">({{ recommendedList.length }}개)</span>
+          </div>
         </div>
-        <div class="text-muted mt-1">이유: {{ r.reason }}</div>
-      </div>
-    </div>
 
-    <div v-if="loanRecommendedList.length" class="mt-3">
-      <div class="p-3 border rounded bg-white mb-2" v-for="(r, idx) in loanRecommendedList" :key="r.fin_prdt_cd">
-        <div class="fw-semibold">
-          {{ idx + 1 }}) {{ r.name }}
-          <RouterLink
-            class="ms-2 small"
-            :to="{ path: `/loans/${r.fin_prdt_cd}`, query: { category: r.category } }"
-          >
-            상세보기
-          </RouterLink>
+        <div class="result-card__body">
+          <div v-if="recommendSummary" class="alert alert-secondary mb-3">
+            {{ recommendSummary }}
+          </div>
+
+          <div v-if="recommendedList.length">
+            <div class="p-3 border rounded bg-white mb-2" v-for="(r, idx) in recommendedList" :key="r.id">
+              <div class="fw-semibold d-flex justify-content-between align-items-start gap-2">
+                <div class="me-2">
+                  {{ idx + 1 }}) {{ r.name }}
+                </div>
+                <RouterLink class="btn btn-outline-primary btn-sm" :to="`/products/${r.id}`">
+                  상세보기
+                </RouterLink>
+              </div>
+              <div class="text-muted mt-1">이유: {{ r.reason }}</div>
+            </div>
+          </div>
         </div>
-        <div class="text-muted mt-1">이유: {{ r.reason }}</div>
-      </div>
-    </div>
+      </section>
 
-    <div
-      v-if="
-        !recommendLoading &&
-        !loanRecommendLoading &&
-        !recommendedList.length &&
-        !loanRecommendedList.length &&
-        !recommendSummary &&
-        !loanRecommendSummary &&
-        !recommendError &&
-        !loanRecommendError
-      "
-      class="text-muted mt-3"
-    >
-      아직 추천을 실행하지 않았습니다.
+      <!-- 대출 섹션 -->
+      <section v-if="loanRecommendSummary || loanRecommendedList.length" class="result-card result-card--loan">
+        <div class="result-card__head">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-success">대출</span>
+            <span class="fw-bold">추천 결과</span>
+            <span v-if="loanRecommendedList.length" class="text-muted small">({{ loanRecommendedList.length }}개)</span>
+          </div>
+        </div>
+
+        <div class="result-card__body">
+          <div v-if="loanRecommendSummary" class="alert alert-secondary mb-3">
+            {{ loanRecommendSummary }}
+          </div>
+
+          <div v-if="loanRecommendedList.length">
+            <div
+              class="p-3 border rounded bg-white mb-2"
+              v-for="(r, idx) in loanRecommendedList"
+              :key="r.fin_prdt_cd"
+            >
+              <div class="fw-semibold d-flex justify-content-between align-items-start gap-2">
+                <div class="me-2">
+                  {{ idx + 1 }}) {{ r.name }}
+                </div>
+
+                <RouterLink
+                  class="btn btn-outline-success btn-sm"
+                  :to="{ path: `/loans/${r.fin_prdt_cd}`, query: { category: r.category } }"
+                >
+                  상세보기
+                </RouterLink>
+              </div>
+              <div class="text-muted mt-1">이유: {{ r.reason }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 아무것도 없을 때 -->
+      <div
+        v-if="
+          !recommendLoading &&
+          !loanRecommendLoading &&
+          !recommendedList.length &&
+          !loanRecommendedList.length &&
+          !recommendSummary &&
+          !loanRecommendSummary &&
+          !recommendError &&
+          !loanRecommendError
+        "
+        class="text-muted"
+      >
+        아직 추천을 실행하지 않았습니다.
+      </div>
     </div>
   </div>
 </template>
@@ -141,3 +184,33 @@ async function doLoanRecommend() {
   }
 }
 </script>
+
+<style scoped>
+/* 결과 섹션 카드 */
+.result-card {
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.result-card__head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef1f3;
+}
+
+.result-card__body {
+  padding: 12px 14px;
+}
+
+/* 섹션별 포인트(헤더 배경 + 왼쪽 라인) */
+.result-card--deposit .result-card__head {
+  background: rgba(13, 110, 253, 0.06);
+  border-left: 6px solid #0d6efd;
+}
+
+.result-card--loan .result-card__head {
+  background: rgba(25, 135, 84, 0.06);
+  border-left: 6px solid #198754;
+}
+</style>

@@ -36,7 +36,6 @@
 
           <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
             <div class="navbar-nav gap-4">
-              <!-- ✅ 현재 위치(active) 표시용 app-nav-link 클래스 추가 -->
               <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/deposits">
                 예금비교
               </RouterLink>
@@ -73,7 +72,7 @@
       <div class="container">
         <div class="row gy-3 footer-grid">
           <div class="col-lg-4 col-md-6">
-            <h5 class="text-white fw-bold mb-2">Bankbook</h5>
+            <h5 class="text-white fw-bold mb-2">BankBook</h5>
             <p class="small mb-2">
               합리적인 금융 의사결정을 돕는<br />
               비교·분석 플랫폼

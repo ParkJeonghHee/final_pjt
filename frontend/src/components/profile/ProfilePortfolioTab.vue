@@ -1,9 +1,13 @@
 <template>
   <div>
-    <h5 class="fw-bold mb-3">가입한 상품들</h5>
+    <h5 class="fw-bold mb-4">가입한 상품들</h5>
 
     <section class="mb-4">
-      <h6 class="fw-bold mb-2">예금·적금 상품</h6>
+      <div class="section-header deposit">
+        <span class="badge bg-primary me-2">예금·적금</span>
+        <span class="fw-bold">가입한 예금·적금 상품</span>
+      </div>
+
       <p v-if="errorMsg" class="text-danger fw-semibold mb-2">{{ errorMsg }}</p>
       <div v-if="loading" class="text-muted">불러오는 중...</div>
 
@@ -22,9 +26,8 @@
           </div>
         </div>
 
-        <h5 v-if="joinedProducts.length > 0" class="fw-bold mt-4">가입한 상품 금리</h5>
+        <h5 v-if="joinedProducts.length > 0" class="fw-bold mt-4">가입한 예금·적금 상품 금리</h5>
 
-        <!-- 페이지네이션 -->
         <div
           v-if="joinedProducts.length > 0"
           class="d-flex justify-content-between align-items-center mb-2"
@@ -51,7 +54,6 @@
           </div>
         </div>
 
-        <!-- 차트 -->
         <div v-if="joinedProducts.length > 0" class="border rounded p-3 chart-wrap">
           <canvas ref="chartCanvas"></canvas>
         </div>
@@ -59,7 +61,11 @@
     </section>
 
     <section>
-      <h6 class="fw-bold mb-2">대출 상품</h6>
+      <div class="section-header loan">
+        <span class="badge bg-success me-2">대출</span>
+        <span class="fw-bold">가입한 대출 상품</span>
+      </div>
+
       <p v-if="loansErrorMsg" class="text-danger fw-semibold mb-2">{{ loansErrorMsg }}</p>
       <div v-if="loansLoading" class="text-muted">불러오는 중...</div>
 
@@ -125,6 +131,7 @@ import { fetchProductDetail } from "@/api/products"
 const loading = ref(false)
 const errorMsg = ref("")
 const joinedProducts = ref([])
+
 const joinedLoans = ref([])
 const loansLoading = ref(false)
 const loansErrorMsg = ref("")
@@ -147,7 +154,6 @@ const pageItems = computed(() => {
   return joinedProducts.value.slice(start, start + pageSize)
 })
 
-
 const chartCanvas = ref(null)
 let chartInstance = null
 
@@ -159,6 +165,66 @@ function nextPage() {
   if (currentPage.value < totalPages.value - 1) currentPage.value += 1
 }
 
+function splitByMaxLenWordwise(text, maxLen, maxLines = 3) {
+  const s = (text || "").trim()
+  if (!s) return [""]
+
+  const words = s.split(/\s+/)
+  const lines = []
+  let cur = ""
+
+  for (const w of words) {
+    if (w.length > maxLen) {
+      if (cur) {
+        lines.push(cur)
+        cur = ""
+      }
+      let rest = w
+      while (rest.length > maxLen && lines.length < maxLines) {
+        lines.push(rest.slice(0, maxLen))
+        rest = rest.slice(maxLen)
+      }
+      if (rest && lines.length < maxLines) cur = rest
+      continue
+    }
+
+    const next = cur ? `${cur} ${w}` : w
+    if (next.length <= maxLen) {
+      cur = next
+    } else {
+      if (cur) lines.push(cur)
+      cur = w
+      if (lines.length >= maxLines - 1) break
+    }
+  }
+
+  if (cur && lines.length < maxLines) lines.push(cur)
+
+  if (lines.length > maxLines) {
+    const head = lines.slice(0, maxLines)
+    head[maxLines - 1] = head[maxLines - 1].slice(0, Math.max(0, maxLen - 1)) + "…"
+    return head
+  }
+
+  return lines
+}
+
+function makeChartLabel(name, maxLen = 18) {
+  if (!name) return ""
+
+  const parenIdx = name.indexOf("(")
+  if (parenIdx > 0) {
+    const a = name.slice(0, parenIdx).trim()
+    const b = name.slice(parenIdx).trim()
+    const bLines = splitByMaxLenWordwise(b, maxLen, 2) 
+    return [a, ...bLines]
+  }
+
+  if (name.length <= maxLen) return name
+  const lines = splitByMaxLenWordwise(name, maxLen, 3)
+  return lines.length === 1 ? lines[0] : lines
+}
+
 
 function buildFixedFourSlots(items) {
   const fixedLabels = []
@@ -168,7 +234,7 @@ function buildFixedFourSlots(items) {
   for (let i = 0; i < pageSize; i += 1) {
     const p = items[i]
     if (!p) {
-      fixedLabels.push("")        
+      fixedLabels.push("")
       fixedBase.push(null)
       fixedMax.push(null)
       continue
@@ -186,8 +252,7 @@ function buildFixedFourSlots(items) {
     }
 
     const name = p.fin_prdt_nm || ""
-    const label =
-      name.length > 14 ? [name.slice(0, 14), name.slice(14)] : name
+    const label = makeChartLabel(name, 18)
 
     fixedLabels.push(label)
     fixedBase.push(base ?? 0)
@@ -213,19 +278,13 @@ async function drawChart() {
     data: {
       labels: fixedLabels,
       datasets: [
-        {
-          label: "기본 금리",
-          data: fixedBase,
-        },
-        {
-          label: "최고 우대금리",
-          data: fixedMax,
-        },
+        { label: "기본 금리", data: fixedBase },
+        { label: "최고 우대금리", data: fixedMax },
       ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, 
+      maintainAspectRatio: false,
       animation: false,
       plugins: {
         legend: { position: "top" },
@@ -237,18 +296,13 @@ async function drawChart() {
           ticks: {
             maxRotation: 0,
             minRotation: 0,
-            autoSkip: false, 
+            autoSkip: false,
           },
         },
-        y: {
-          beginAtZero: true,
-        },
+        y: { beginAtZero: true },
       },
       datasets: {
-        bar: {
-          categoryPercentage: 0.7,
-          barPercentage: 0.9,
-        },
+        bar: { categoryPercentage: 0.7, barPercentage: 0.9 },
       },
     },
   })
@@ -269,7 +323,6 @@ async function loadJoinedProducts() {
     }
 
     const details = await Promise.all(ids.map((id) => fetchProductDetail(id)))
-
     joinedProducts.value = details
     currentPage.value = 0
   } catch (e) {
@@ -388,7 +441,7 @@ function buildLoanSlots(items) {
     const { minRate, maxRate } = getLoanRateSummary(p)
 
     const name = p.fin_prdt_nm || ""
-    const label = name.length > 14 ? [name.slice(0, 14), name.slice(14)] : name
+    const label = makeChartLabel(name, 18)
 
     fixedLabels.push(label)
     fixedMin.push(Number.isFinite(minRate) ? minRate : null)
@@ -467,14 +520,8 @@ async function drawLoanChart() {
     data: {
       labels: fixedLabels,
       datasets: [
-        {
-          label: "최저 금리",
-          data: fixedMin,
-        },
-        {
-          label: "최고 금리",
-          data: fixedMax,
-        },
+        { label: "최저 금리", data: fixedMin },
+        { label: "최고 금리", data: fixedMax },
       ],
     },
     options: {
@@ -494,15 +541,10 @@ async function drawLoanChart() {
             autoSkip: false,
           },
         },
-        y: {
-          beginAtZero: true,
-        },
+        y: { beginAtZero: true },
       },
       datasets: {
-        bar: {
-          categoryPercentage: 0.7,
-          barPercentage: 0.9,
-        },
+        bar: { categoryPercentage: 0.7, barPercentage: 0.9 },
       },
     },
   })
@@ -511,12 +553,8 @@ async function drawLoanChart() {
 onMounted(async () => {
   await loadJoinedProducts()
   await loadJoinedLoans()
-  if (joinedProducts.value.length > 0) {
-    await drawChart()
-  }
-  if (joinedLoans.value.length > 0) {
-    await drawLoanChart()
-  }
+  if (joinedProducts.value.length > 0) await drawChart()
+  if (joinedLoans.value.length > 0) await drawLoanChart()
 })
 
 watch([currentPage, joinedProducts], async () => {
@@ -546,5 +584,25 @@ onBeforeUnmount(() => {
 <style scoped>
 .chart-wrap {
   height: 360px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.section-header.deposit {
+  background-color: rgba(13, 110, 253, 0.06);
+  border-left: 5px solid #0d6efd;
+}
+
+.section-header.loan {
+  background-color: rgba(25, 135, 84, 0.06);
+  border-left: 5px solid #198754;
 }
 </style>
