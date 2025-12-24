@@ -84,23 +84,59 @@ function destroyChart() {
 
 function renderChart(labels, data) {
   destroyChart()
-  chartInstance = new Chart(chartEl.value, {
+  const ctx = chartEl.value.getContext("2d")
+  const isGold = asset.value === "gold"
+  const lineColor = isGold ? "#d9a441" : "#2563eb"
+  const glowColor = isGold ? "rgba(217, 164, 65, 0.18)" : "rgba(37, 99, 235, 0.18)"
+  const gradient = ctx.createLinearGradient(0, 0, 0, chartEl.value.height || 300)
+  gradient.addColorStop(0, glowColor)
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)")
+
+  chartInstance = new Chart(ctx, {
     type: "line",
     data: {
       labels,
       datasets: [
         {
-          label: asset.value === "gold" ? "Gold Close/Last" : "Silver Close/Last",
+          label: isGold ? "Gold Close/Last" : "Silver Close/Last",
           data,
+          borderColor: lineColor,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          pointBackgroundColor: lineColor,
+          pointBorderWidth: 0,
         },
       ],
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: true } },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { boxWidth: 14, usePointStyle: true, pointStyle: "circle" },
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.parsed.y.toLocaleString()}`,
+          },
+        },
+      },
       scales: {
-        x: { display: true },
-        y: { display: true },
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+        },
+        y: {
+          display: true,
+          grid: { color: "rgba(15, 23, 42, 0.08)" },
+          ticks: {
+            callback: (v) => Number(v).toLocaleString(),
+          },
+        },
       },
     },
   })

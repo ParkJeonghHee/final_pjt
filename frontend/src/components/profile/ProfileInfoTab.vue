@@ -14,11 +14,6 @@
       </p>
 
       <div class="mb-3">
-        <label class="form-label">회원번호</label>
-        <input class="form-control" :value="profile.id ?? ''" disabled />
-      </div>
-
-      <div class="mb-3">
         <label class="form-label">ID</label>
         <input class="form-control" :value="profile.username ?? ''" disabled />
       </div>

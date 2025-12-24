@@ -7,6 +7,8 @@ import SignupView from '@/views/SignupView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 
 import DepositsView from '@/views/DepositsView.vue'
+import LoansView from '@/views/LoansView.vue'
+import LoanDetailView from '@/views/LoanDetailView.vue'
 import MetalsView from '@/views/MetalsView.vue'
 import StocksView from '@/views/StocksView.vue'
 import MapView from '@/views/MapView.vue'
@@ -29,6 +31,8 @@ const router = createRouter({
     { path: '/signup', component: SignupView },
     { path: '/profile', component: ProfileView, meta: { requiresAuth: true } },
     { path: '/deposits', component: DepositsView },
+    { path: '/loans', component: LoansView },
+    { path: '/loans/:finPrdtCd', component: LoanDetailView },
     { path: '/metals', component: MetalsView },
     { path: '/stocks', component: StocksView },
     { path: '/map', component: MapView },

@@ -40,6 +40,9 @@
               <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/deposits">
                 예금비교
               </RouterLink>
+              <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/loans">
+                대출비교
+              </RouterLink>
               <RouterLink class="nav-link app-nav-link text-dark fw-semibold" to="/metals">
                 현물상품
               </RouterLink>
@@ -76,23 +79,13 @@
               합리적인 금융 의사결정을 돕는<br />
               비교·분석 플랫폼
             </p>
-            <div class="d-flex gap-3">
-              <a href="#" class="text-decoration-none text-secondary" aria-label="facebook">
-                <i class="bi bi-facebook"></i> F
-              </a>
-              <a href="#" class="text-decoration-none text-secondary" aria-label="twitter">
-                <i class="bi bi-twitter"></i> T
-              </a>
-              <a href="#" class="text-decoration-none text-secondary" aria-label="instagram">
-                <i class="bi bi-instagram"></i> I
-              </a>
-            </div>
           </div>
 
           <div class="col-lg-3 col-md-6">
             <h6 class="text-white fw-bold mb-3">서비스</h6>
             <ul class="list-unstyled small d-flex flex-column gap-2">
               <li><RouterLink class="text-decoration-none text-reset" to="/deposits">예·적금 비교</RouterLink></li>
+              <li><RouterLink class="text-decoration-none text-reset" to="/loans">대출 비교</RouterLink></li>
               <li><RouterLink class="text-decoration-none text-reset" to="/metals">금·은 시세</RouterLink></li>
               <li><RouterLink class="text-decoration-none text-reset" to="/stocks">주식 영상</RouterLink></li>
               <li><RouterLink class="text-decoration-none text-reset" to="/map">은행 찾기</RouterLink></li>

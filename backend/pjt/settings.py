@@ -41,6 +41,7 @@ GMS_KEY = os.getenv("GMS_KEY")
 # Application definition
 
 INSTALLED_APPS = [
+    'loans',
     'chat',
     'recommend',
     'community',
