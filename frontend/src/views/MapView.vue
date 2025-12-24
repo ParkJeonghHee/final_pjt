@@ -1,197 +1,75 @@
 <template>
   <div class="page">
-
     <div class="grid">
-      <aside class="card side-card">
-        <h5 class="card-title">은행 찾기</h5>
-
-        <div class="mb-3">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">
-              <i class="bi bi-search"></i>
-            </span>
-            <input
-              v-model="keyword"
-              class="form-control"
-              placeholder="은행명 또는 주소 검색"
-              @keyup.enter="onSearch"
-            />
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="mb-2">
-          <label class="form-label small text-muted">광역시/도</label>
-          <select v-model="selectedSido" class="form-select form-select-sm" @change="onChangeSido">
-            <option value="">선택</option>
-            <option v-for="s in sidos" :key="s" :value="s">{{ s }}</option>
-          </select>
-        </div>
-
-        <div class="mb-2">
-          <label class="form-label small text-muted">시/군/구</label>
-          <select v-model="selectedSigungu" class="form-select form-select-sm" :disabled="!selectedSido">
-            <option value="">선택</option>
-            <option v-for="g in sigungus" :key="g" :value="g">{{ g }}</option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label small text-muted">은행</label>
-          <select v-model="selectedBank" class="form-select form-select-sm">
-            <option value="">선택</option>
-            <option v-for="b in banks" :key="b" :value="b">{{ b }}</option>
-          </select>
-        </div>
-
-        <button class="btn btn-success w-100 btn-sm" @click="onSearch">
-          <i class="bi bi-search me-1"></i> 찾기
-        </button>
-
-        <div class="hint">
-          거리가 가까운 곳 먼저 조회됩니다.
-        </div>
-
-        <div class="result-head">
-          <div class="small fw-semibold">검색 결과 ({{ results.length }})</div>
-          <select v-model="sortMode" class="form-select form-select-sm sort">
-            <option value="distance">거리순</option>
-            <option value="name">이름순</option>
-          </select>
-        </div>
-
-        <div class="result-list">
-          <div v-if="!results.length" class="empty-note text-muted small">
-            검색 결과가 없습니다.
-          </div>
-
-          <button
-            v-for="place in sortedResults"
-            :key="place.id"
-            type="button"
-            class="result-item"
-            :class="{ active: selectedPlace?.id === place.id }"
-            @click="selectPlace(place)"
-          >
-            <div class="d-flex align-items-start gap-2">
-              <div class="avatar">
-                <i class="bi bi-bank"></i>
-              </div>
-
-              <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <div class="name">{{ place.name }}</div>
-                    <div class="addr">{{ place.address }}</div>
-                  </div>
-
-                  <div class="text-end">
-                    <div class="dist">{{ formatKm(place.distanceKm) }}</div>
-                    <div class="more">자세히 보기 →</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
-
-          <button
-            v-if="results.length"
-            class="btn btn-outline-secondary w-100 btn-sm mt-2"
-            @click="clearResults"
-          >
-            결과/검색 지우기
-          </button>
-        </div>
-      </aside>
+      <BankSearchSidebar
+        v-model:keyword="keyword"
+        v-model:selectedSido="selectedSido"
+        v-model:selectedSigungu="selectedSigungu"
+        v-model:selectedBank="selectedBank"
+        v-model:sortMode="sortMode"
+        :sidos="sidos"
+        :sigungus="sigungus"
+        :banks="banks"
+        :results="results"
+        :selectedPlace="selectedPlace"
+        @search="onSearch"
+        @select-place="selectPlace"
+        @clear="clearResults"
+      />
 
       <section class="card map-card">
         <div class="map-card-head">은행지도</div>
 
         <div class="map-card-body">
-          <div class="map-area">
-            <div class="map-canvas" ref="mapEl"></div>
-
-            <div class="route-panel card shadow-sm" v-if="selectedPlace">
-              <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <div class="fw-bold">{{ selectedPlace.name }}</div>
-                    <div class="small text-muted">{{ selectedPlace.address }}</div>
-                  </div>
-                  <button class="btn btn-sm btn-light" @click="selectedPlace = null" aria-label="닫기">
-                    <i class="bi bi-x"></i>
-                  </button>
-                </div>
-
-                <div class="btn-group w-100 mt-3" role="group" aria-label="경로 옵션">
-                  <button
-                    class="btn btn-sm"
-                    :class="routeMode==='car' ? 'btn-primary' : 'btn-outline-primary'"
-                    @click="routeMode='car'; requestRoute()"
-                  >
-                    자동차
-                  </button>
-                  <button
-                    class="btn btn-sm"
-                    :class="routeMode==='transit' ? 'btn-primary' : 'btn-outline-primary'"
-                    @click="routeMode='transit'; requestRoute()"
-                  >
-                    대중교통
-                  </button>
-                </div>
-
-                <div class="mt-3 small">
-                  <div class="d-flex justify-content-between">
-                    <span class="text-muted">거리</span>
-                    <span class="fw-semibold">{{ routeInfo?.distanceText || '-' }}</span>
-                  </div>
-                  <div class="d-flex justify-content-between mt-1">
-                    <span class="text-muted">시간</span>
-                    <span class="fw-semibold">{{ routeInfo?.durationText || '-' }}</span>
-                  </div>
-                </div>
-
-                <button class="btn btn-success btn-sm w-100 mt-3" @click="requestRoute">
-                  경로 검색
-                </button>
-              </div>
-            </div>
-          </div><!-- /map-area -->
-        </div><!-- /map-card-body -->
+          <KakaoMapCanvas ref="mapCanvas">
+            <RoutePanel
+              :place="selectedPlace"
+              v-model:mode="routeMode"
+              :info="routeInfo"
+              @close="selectedPlace = null"
+              @search-route="requestRoute"
+            />
+          </KakaoMapCanvas>
+        </div>
       </section>
-    </div><!-- /grid -->
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue"
-import { getRoute } from "@/api/kakao"
+import { computed, onMounted, ref, watch } from "vue"
+import BankSearchSidebar from "@/components/map/BankSearchSidebar.vue"
+import KakaoMapCanvas from "@/components/map/KakaoMapCanvas.vue"
+import RoutePanel from "@/components/map/RoutePanel.vue"
+import { useKakaoBankMap } from "@/composables/useKakaoBankMap"
 
 const keyword = ref("")
 const selectedSido = ref("")
 const selectedSigungu = ref("")
 const selectedBank = ref("")
+const sortMode = ref("distance")
+
+const results = ref([])
 const selectedPlace = ref(null)
 const routeMode = ref("car")
-const sortMode = ref("distance")
-const results = ref([])
 const routeInfo = ref(null)
-const currentLocation = ref(null)
-const mapEl = ref(null)
-
-let kakaoObj = null
-let map = null
-let ps = null
-let geocoder = null
-let infoWindow = null
-let markers = []
-let routePolyline = null
-let startMarker = null
-let startInfo = null
 
 const mapInfo = ref([])
 const bankInfo = ref([])
+
+const mapCanvas = ref(null)
+
+const {
+  currentLocation,
+  initMap,
+  panTo,
+  fitPlaces,
+  clearMarkers,
+  clearRoute,
+  requestRouteTo,
+  keywordSearch,
+  geocodeAddress,
+} = useKakaoBankMap()
 
 const sidos = computed(() => mapInfo.value.map((x) => x.name) || [])
 const sigungus = computed(() => {
@@ -200,208 +78,10 @@ const sigungus = computed(() => {
 })
 const banks = computed(() => bankInfo.value || [])
 
-const sortedResults = computed(() => {
-  const list = [...results.value]
-  if (sortMode.value === "name") return list.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-  return list.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
-})
-
 watch(selectedSido, () => {
   selectedSigungu.value = ""
   selectedBank.value = ""
 })
-
-function formatKm(km) {
-  if (km == null) return "-"
-  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`
-}
-
-function onChangeSido() {
-  selectedSigungu.value = ""
-  selectedBank.value = ""
-}
-
-function selectPlace(place) {
-  selectedPlace.value = place
-  routeMode.value = "car"
-  routeInfo.value = null
-
-  if (map && place.x && place.y) {
-    const pos = new kakaoObj.maps.LatLng(place.y, place.x)
-    map.panTo(pos)
-  }
-}
-
-function clearResults() {
-  results.value = []
-  selectedPlace.value = null
-  routeInfo.value = null
-  clearRoute()
-  clearMarkers()
-}
-
-function clearRoute() {
-  if (routePolyline) {
-    routePolyline.setMap(null)
-    routePolyline = null
-  }
-}
-
-function clearMarkers() {
-  markers.forEach((m) => m.setMap(null))
-  markers = []
-}
-
-function destroyAll() {
-  try {
-    clearRoute()
-    clearMarkers()
-    if (infoWindow) infoWindow.close()
-    if (startInfo) startInfo.close()
-  } catch (_) {}
-  startInfo = null
-  infoWindow = null
-  ps = null
-  geocoder = null
-  map = null
-  kakaoObj = null
-}
-
-/**
- * ✅ 변경 포인트:
- * - 경로를 그린 뒤, path 전체 + 출발/도착을 포함한 bounds를 만들고
- * - map.setBounds(bounds, padding)으로 "전체 경로가 한 눈에 보이게" 줌아웃
- */
-function drawRoutePolyline(path) {
-  clearRoute()
-  if (!Array.isArray(path) || !path.length || !kakaoObj || !map) return
-
-  // ✅ path 원소에서 x/y(또는 lng/lat 등) 안전하게 뽑아오기
-  const toLatLng = (p) => {
-    if (!p) return null
-
-    // 1) { x, y } 형태
-    let x = p.x ?? p.lng ?? p.lon ?? p.longitude
-    let y = p.y ?? p.lat ?? p.latitude
-
-    // 2) [x, y] 형태 대비
-    if (Array.isArray(p) && p.length >= 2) {
-      x = p[0]
-      y = p[1]
-    }
-
-    x = Number(x)
-    y = Number(y)
-
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return null
-    return new kakaoObj.maps.LatLng(y, x)
-  }
-
-  const linePath = path.map(toLatLng).filter(Boolean)
-
-  // ✅ 유효한 점이 2개 미만이면 그리지 말기 (NaN 방지)
-  if (linePath.length < 2) return
-
-  routePolyline = new kakaoObj.maps.Polyline({
-    map,
-    path: linePath,
-    strokeWeight: 5,
-    strokeOpacity: 0.9,
-    strokeStyle: "solid",
-    strokeColor: "#FF0000",
-  })
-
-  // ✅ bounds 계산
-  const bounds = new kakaoObj.maps.LatLngBounds()
-  linePath.forEach((latlng) => bounds.extend(latlng))
-
-  // ✅ setBounds: (bounds, top, right, bottom, left) 숫자로 padding 주기
-  // 왼쪽 패널 때문에 left를 크게
-  map.setBounds(bounds, 60, 60, 60, 420)
-
-  requestAnimationFrame(() => map && map.relayout())
-}
-
-
-async function requestRoute() {
-  if (!selectedPlace.value || !currentLocation.value) {
-    alert("선택된 지점이 없거나 위치를 알 수 없습니다")
-    return
-  }
-
-  if (routeMode.value === "transit") {
-    const kakaoMapUrl = `https://map.kakao.com/link/to/${encodeURIComponent(selectedPlace.value.name)},${selectedPlace.value.y},${selectedPlace.value.x}`
-    window.open(kakaoMapUrl, "_blank")
-    return
-  }
-
-  routeInfo.value = null
-  clearRoute()
-
-  try {
-    const res = await getRoute({
-      originX: currentLocation.value.lng,
-      originY: currentLocation.value.lat,
-      destX: selectedPlace.value.x,
-      destY: selectedPlace.value.y,
-      priority: "RECOMMEND",
-    })
-
-    const path = res?.data?.path || []
-    if (!path.length) {
-      alert("경로를 조회할 수 없습니다")
-      return
-    }
-
-    routeInfo.value = {
-      distanceText: `${(res.data.distance / 1000).toFixed(2)}km`,
-      durationText: `${Math.ceil(res.data.duration / 60)}분`,
-    }
-
-    drawRoutePolyline(path)
-  } catch (err) {
-    alert("경로 조회 실패: " + (err.response?.data?.detail || err.message))
-  }
-}
-
-
-
-function getRegionText() {
-  const parts = []
-  if (selectedSido.value) parts.push(selectedSido.value)
-  if (selectedSigungu.value) parts.push(selectedSigungu.value)
-  return parts.join(" ").trim()
-}
-
-function geocodeAddress(address) {
-  return new Promise((resolve) => {
-    if (!geocoder || !address) return resolve(null)
-    geocoder.addressSearch(address, (result, status) => {
-      if (status === kakaoObj.maps.services.Status.OK && result?.length) {
-        const x = parseFloat(result[0].x)
-        const y = parseFloat(result[0].y)
-        if (!Number.isNaN(x) && !Number.isNaN(y)) return resolve({ x, y })
-      }
-      resolve(null)
-    })
-  })
-}
-
-async function getSearchCenterLatLng() {
-  const regionText = getRegionText()
-  if (regionText) {
-    const geo = await geocodeAddress(regionText)
-    if (geo && map) {
-      const pos = new kakaoObj.maps.LatLng(geo.y, geo.x)
-      map.setCenter(pos)
-      map.setLevel(7)
-      return pos
-    }
-  }
-
-  if (map) return map.getCenter()
-  return null
-}
 
 function convertPlaces(data) {
   return (data || []).map((place) => ({
@@ -414,47 +94,61 @@ function convertPlaces(data) {
   }))
 }
 
-function applySearchResults(converted) {
-  results.value = converted
+function clearResults() {
+  results.value = []
+  selectedPlace.value = null
+  routeInfo.value = null
+  clearRoute()
   clearMarkers()
-
-  if (!converted.length) return
-
-  const bounds = new kakaoObj.maps.LatLngBounds()
-  converted.forEach((place) => {
-    const pos = new kakaoObj.maps.LatLng(place.y, place.x)
-    const marker = new kakaoObj.maps.Marker({ map, position: pos })
-    markers.push(marker)
-    bounds.extend(pos)
-    marker.addListener("click", () => selectPlace(place))
-  })
-
-  map.setBounds(bounds)
-  requestAnimationFrame(() => map && map.relayout())
 }
 
-async function keywordSearchWithOptions(query, options) {
-  return new Promise((resolve) => {
-    ps.keywordSearch(
-      query,
-      (data, status) => {
-        resolve({ data, status })
-      },
-      options
-    )
-  })
+function selectPlace(place) {
+  selectedPlace.value = place
+  routeMode.value = "car"
+  routeInfo.value = null
+  if (place?.x != null && place?.y != null) panTo(place.x, place.y)
+}
+
+async function requestRoute() {
+  if (!selectedPlace.value) return
+
+  if (routeMode.value === "transit") {
+    const url = `https://map.kakao.com/link/to/${encodeURIComponent(selectedPlace.value.name)},${selectedPlace.value.y},${selectedPlace.value.x}`
+    window.open(url, "_blank")
+    return
+  }
+
+  try {
+    routeInfo.value = await requestRouteTo(selectedPlace.value)
+  } catch (e) {
+    alert("경로 조회 실패: " + (e?.message || e))
+  }
+}
+
+async function getSearchCenterLatLng() {
+  const parts = []
+  if (selectedSido.value) parts.push(selectedSido.value)
+  if (selectedSigungu.value) parts.push(selectedSigungu.value)
+  const regionText = parts.join(" ").trim()
+
+  if (regionText) {
+    const geo = await geocodeAddress(regionText)
+    if (geo) {
+      return new window.kakao.maps.LatLng(geo.y, geo.x)
+    }
+  }
+  return null
 }
 
 async function onSearch() {
-  if (!map || !ps) {
-    alert("지도가 준비되지 않았습니다")
+  if (!window.kakao?.maps?.services) {
+    alert("카카오 지도 services 라이브러리 확인(libraries=services)")
     return
   }
 
   const typed = keyword.value.trim()
   const fallbackQuery = `${selectedSido.value} ${selectedSigungu.value} ${selectedBank.value}`.trim()
   const searchKeyword = typed || fallbackQuery
-
   if (!searchKeyword.trim()) {
     alert("검색어를 입력하세요")
     return
@@ -464,34 +158,34 @@ async function onSearch() {
 
   const center = await getSearchCenterLatLng()
 
-  let res1 = null
+  let r1 = null
   if (center) {
-    res1 = await keywordSearchWithOptions(searchKeyword, {
+    r1 = await keywordSearch(searchKeyword, {
       location: center,
       radius: 20000,
-      sort: kakaoObj.maps.services.SortBy.DISTANCE,
+      sort: window.kakao.maps.services.SortBy.DISTANCE,
     })
   } else {
-    res1 = await keywordSearchWithOptions(searchKeyword, undefined)
+    r1 = await keywordSearch(searchKeyword, undefined)
   }
 
-  if (res1.status === kakaoObj.maps.services.Status.OK && res1.data?.length) {
-    applySearchResults(convertPlaces(res1.data))
+  if (r1.status === window.kakao.maps.services.Status.OK && r1.data?.length) {
+    const converted = convertPlaces(r1.data)
+    results.value = converted
+    fitPlaces(converted, selectPlace)
     return
   }
 
-  const res2 = await keywordSearchWithOptions(searchKeyword, undefined)
-  if (res2.status === kakaoObj.maps.services.Status.OK) {
-    const converted = convertPlaces(res2.data)
-    applySearchResults(converted)
-
-    if (!converted.length) {
-      alert("검색 결과가 없습니다")
-    }
+  const r2 = await keywordSearch(searchKeyword, undefined)
+  if (r2.status === window.kakao.maps.services.Status.OK) {
+    const converted = convertPlaces(r2.data)
+    results.value = converted
+    if (converted.length) fitPlaces(converted, selectPlace)
+    else alert("검색 결과가 없습니다")
     return
   }
 
-  if (res2.status === kakaoObj.maps.services.Status.ZERO_RESULT) {
+  if (r2.status === window.kakao.maps.services.Status.ZERO_RESULT) {
     alert("검색 결과가 없습니다")
     return
   }
@@ -502,9 +196,7 @@ async function onSearch() {
 onMounted(async () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        currentLocation.value = { lat: position.coords.latitude, lng: position.coords.longitude }
-      },
+      (pos) => (currentLocation.value = { lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => {}
     )
   }
@@ -516,44 +208,8 @@ onMounted(async () => {
     bankInfo.value = d.bankInfo || []
   } catch (_) {}
 
-  if (!window.kakao || !window.kakao.maps) {
-    alert("카카오 지도 SDK 로드 실패 (index.html 로드/키/플랫폼 등록 확인)")
-    return
-  }
-
-  kakaoObj = window.kakao
-
-  kakaoObj.maps.load(() => {
-    if (!mapEl.value) return
-    if (!kakaoObj.maps.services) {
-      alert("services 라이브러리가 없습니다. (libraries=services 확인)")
-      return
-    }
-
-    const initialLat = currentLocation.value?.lat || 37.5665
-    const initialLng = currentLocation.value?.lng || 126.978
-    const initialPos = new kakaoObj.maps.LatLng(initialLat, initialLng)
-
-    map = new kakaoObj.maps.Map(mapEl.value, { center: initialPos, level: 5 })
-    ps = new kakaoObj.maps.services.Places()
-    geocoder = new kakaoObj.maps.services.Geocoder()
-    infoWindow = new kakaoObj.maps.InfoWindow({ zIndex: 1 })
-
-    startMarker = new kakaoObj.maps.Marker({ map, position: initialPos })
-    const markerLabel = currentLocation.value ? "📍 현재 위치" : "📍 기본 위치(서울시청)"
-    startInfo = new kakaoObj.maps.InfoWindow({
-      content: `<div style="padding:6px 8px;font-size:12px;"><b>${markerLabel}</b><br/>위도: ${initialLat.toFixed(4)}<br/>경도: ${initialLng.toFixed(4)}</div>`,
-    })
-    startInfo.open(map, startMarker)
-
-    requestAnimationFrame(() => {
-      map.relayout()
-      map.setCenter(initialPos)
-    })
-  })
+  await initMap(mapCanvas.value.el)
 })
-
-onUnmounted(() => destroyAll())
 </script>
 
 <style scoped>
@@ -566,192 +222,39 @@ onUnmounted(() => destroyAll())
   flex-direction: column;
   min-height: 0;
 }
-
 .grid {
   flex: 1;
   min-height: 0;
-
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 18px;
   align-items: stretch;
 }
-
 .card {
   background: #fff;
   border: 1px solid #e9ecef;
   border-radius: 16px;
   box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
 }
-
-.side-card {
-  padding: 18px;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.card-title {
-  font-weight: 800;
-  margin: 0 0 10px;
-}
-
-.divider {
-  height: 1px;
-  background: #eef1f3;
-  margin: 12px 0;
-}
-
-.hint {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #6b7280;
-  background: #f8fafc;
-  border: 1px solid #eef1f3;
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.result-head {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.sort {
-  width: 120px;
-}
-
-.result-list {
-  margin-top: 10px;
-  overflow-y: auto;
-  padding-right: 6px;
-  flex: 1;
-  min-height: 0;
-}
-
-.result-item {
-  width: 100%;
-  background: #fff;
-  border: 1px solid rgba(16, 24, 40, 0.10);
-  border-radius: 14px;
-  padding: 12px;
-  text-align: left;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-  margin-bottom: 10px;
-}
-.result-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(16, 24, 40, 0.08);
-}
-.result-item.active {
-  border-color: #198754;
-  box-shadow: 0 14px 28px rgba(25, 135, 84, 0.16);
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #eef2ff;
-  display: grid;
-  place-items: center;
-  color: #1d4ed8;
-  flex: 0 0 auto;
-}
-
-.name {
-  font-weight: 800;
-  font-size: 14px;
-}
-.addr {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 2px;
-}
-
-.dist {
-  font-size: 12px;
-  color: #6b7280;
-}
-.more {
-  font-size: 12px;
-  color: #2563eb;
-  margin-top: 6px;
-}
-
 .map-card {
   overflow: hidden;
   height: 100%;
   min-height: 0;
 }
-
 .map-card-head {
   padding: 14px 16px;
   font-weight: 800;
   border-bottom: 1px solid #eef1f3;
   background: #ffffff;
 }
-
 .map-card-body {
   padding: 14px 16px 16px;
   height: calc(100% - 52px);
   min-height: 0;
 }
-
-.map-area {
-  position: relative;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #eef1f3;
-
-  height: 100%;
-  min-height: 0;
-
-  background: linear-gradient(180deg, #fbfaf9 0%, #f7f6f5 100%);
-}
-
-.map-canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.route-panel {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 360px;
-  max-width: calc(100% - 24px);
-  border-radius: 14px;
-  z-index: 50;
-}
-
 @media (max-width: 992px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-  .side-card {
-    height: auto;
-  }
-  .map-card {
-    height: auto;
-  }
-  .map-card-body {
-    height: auto;
-  }
-  .map-area {
-    height: 56vh;
-    min-height: 420px;
-  }
-}
-
-.result-list::-webkit-scrollbar {
-  width: 10px;
-}
-.result-list::-webkit-scrollbar-thumb {
-  background: rgba(16, 24, 40, 0.10);
-  border-radius: 8px;
+  .grid { grid-template-columns: 1fr; }
+  .map-card-body { height: auto; }
+  :deep(.map-area) { height: 56vh; min-height: 420px; }
 }
 </style>
