@@ -1,5 +1,5 @@
 <template>
-  <main class="container my-4">
+  <main class="container my-4 loans-page">
     <div v-if="loading" class="text-center my-5">불러오는 중...</div>
     <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
 
@@ -84,9 +84,6 @@
           </div>
         </div>
 
-        <div class="small text-muted mt-2">
-          금리는 API 제공 값(lend_rate_min/avg/max)을 기준으로 표시합니다.
-        </div>
       </div>
 
       <div class="table-responsive">
@@ -329,20 +326,58 @@ onMounted(async () => {
 <style scoped>
 .loan-card {
   background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.page-title {
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  font-family: "Georgia", "Times New Roman", serif;
+  margin-bottom: 4px;
+}
+
+.page-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.page-sub {
+  color: #64748b;
+  margin-bottom: 0;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-badge {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 
 .filters {
-  padding-bottom: 14px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #eef1f4;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .loan-table thead th {
-  background: #f8f9fa;
+  background: #f1f5f9;
   font-weight: 800;
   font-size: 0.92rem;
   border-bottom: 1px solid #e9ecef;
@@ -386,5 +421,12 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   gap: 14px;
+}
+
+@media (max-width: 991.98px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

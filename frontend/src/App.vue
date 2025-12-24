@@ -22,7 +22,7 @@
       <nav class="navbar navbar-expand-md bg-white">
         <div class="container py-2">
           <RouterLink class="navbar-brand fw-bold fs-3 text-primary" to="/">
-            Bankbook
+            BankBook
           </RouterLink>
 
           <button
@@ -68,22 +68,21 @@
 
     <footer
       ref="footerEl"
-      class="py-5"
-      style="background-color:#0f172a; color:#94a3b8; position:sticky; bottom:0; margin-top:auto;"
+      class="py-4 app-footer"
     >
       <div class="container">
-        <div class="row gy-4">
+        <div class="row gy-3 footer-grid">
           <div class="col-lg-4 col-md-6">
-            <h5 class="text-white fw-bold mb-3">Bankbook</h5>
-            <p class="small mb-4">
+            <h5 class="text-white fw-bold mb-2">Bankbook</h5>
+            <p class="small mb-2">
               합리적인 금융 의사결정을 돕는<br />
               비교·분석 플랫폼
             </p>
           </div>
 
           <div class="col-lg-3 col-md-6">
-            <h6 class="text-white fw-bold mb-3">서비스</h6>
-            <ul class="list-unstyled small d-flex flex-column gap-2">
+            <h6 class="text-white fw-bold mb-2">서비스</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-1">
               <li><RouterLink class="text-decoration-none text-reset" to="/deposits">예·적금 비교</RouterLink></li>
               <li><RouterLink class="text-decoration-none text-reset" to="/loans">대출 비교</RouterLink></li>
               <li><RouterLink class="text-decoration-none text-reset" to="/metals">금·은 시세</RouterLink></li>
@@ -94,8 +93,8 @@
           </div>
 
           <div class="col-lg-3 col-md-6">
-            <h6 class="text-white fw-bold mb-3">내 계정</h6>
-            <ul class="list-unstyled small d-flex flex-column gap-2">
+            <h6 class="text-white fw-bold mb-2">내 계정</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-1">
               <template v-if="auth.isLoggedIn">
                 <li>
                   <RouterLink class="text-decoration-none text-reset" to="/profile">
@@ -118,8 +117,8 @@
           </div>
 
           <div class="col-lg-2 col-md-6">
-            <h6 class="text-white fw-bold mb-3">고객지원</h6>
-            <ul class="list-unstyled small d-flex flex-column gap-2">
+            <h6 class="text-white fw-bold mb-2">고객지원</h6>
+            <ul class="list-unstyled small d-flex flex-column gap-1">
               <li><a href="mailto:support@bankbook.local" class="text-decoration-none text-reset">문의하기</a></li>
               <li><a href="mailto:support@bankbook.local?subject=Bug%20Report" class="text-decoration-none text-reset">버그 제보</a></li>
               <li><a href="mailto:support@bankbook.local?subject=Feature%20Request" class="text-decoration-none text-reset">기능 제안</a></li>
@@ -132,10 +131,10 @@
           </div>
         </div>
 
-        <hr class="my-4 border-secondary opacity-25" />
+        <hr class="my-3 border-secondary opacity-25" />
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small">
-          <p class="mb-0">© {{ year }} Bankbook. All rights reserved.</p>
+          <p class="mb-0">© {{ year }} BankBook. All rights reserved.</p>
           <div class="d-flex gap-3 mt-2 mt-md-0">
             <span class="text-reset">개인정보처리방침</span>
             <span class="text-reset">이용약관</span>
@@ -204,7 +203,7 @@ function scrollToTop() {
 /* 기본 페이지 */
 .main-default {
   padding-top: var(--app-header-offset);
-  padding-bottom: 80px;
+  padding-bottom: 24px;
 }
 
 /* ✅ /map 전용: “헤더+푸터를 제외한 영역”을 main 높이로 고정 */
@@ -244,5 +243,26 @@ function scrollToTop() {
 footer a:hover {
   color: #fff !important;
   transition: color 0.2s;
+}
+
+@media (max-width: 575.98px) {
+  .main-default {
+    padding-bottom: 16px;
+  }
+}
+
+.footer-grid {
+  align-items: flex-start;
+}
+
+.footer-grid ul {
+  margin-bottom: 0;
+}
+
+.app-footer {
+  background-color: #0f172a;
+  color: #94a3b8;
+  margin-top: auto;
+  position: static;
 }
 </style>
