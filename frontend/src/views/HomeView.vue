@@ -18,13 +18,6 @@
             <div class="market-value">{{ formatPercent(market.baseRate) }}</div>
             <div class="market-sub">대한민국 기준금리</div>
           </div>
-          <div class="market-card wide">
-            <div class="market-label">국채 3년</div>
-            <div class="market-value">{{ formatPercent(market.bond3y) }}</div>
-            <div class="market-sub">
-              {{ market.detail || "한국은행 ECOS 기준" }}
-            </div>
-          </div>
         </div>
         <div class="row align-items-center gx-5">
           <div class="col-lg-6 order-2 order-lg-1 text-center text-lg-start">
@@ -204,7 +197,7 @@ onMounted(async () => {
 
 .market-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 

@@ -120,19 +120,7 @@
           <p v-if="marketSeries.baseRate.length === 0" class="macro-empty">데이터 없음</p>
         </div>
 
-        <div class="macro-card">
-          <div class="macro-header">
-            <div>
-              <p class="macro-title">국채 3년</p>
-              <p class="macro-value">{{ formatPercent(latest.bond3y) }}</p>
-              <p class="macro-sub">금리 기준 지표</p>
-            </div>
-          </div>
-          <div class="macro-chart">
-            <canvas ref="bond3yChartEl"></canvas>
-          </div>
-          <p v-if="marketSeries.bond3y.length === 0" class="macro-empty">데이터 없음</p>
-        </div>
+
       </div>
     </div>
   </main>
