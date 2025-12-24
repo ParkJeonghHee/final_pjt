@@ -1,5 +1,6 @@
 import axios from "axios"
 
+// 자동차 
 export function getRoute({ originX, originY, destX, destY, priority = "RECOMMEND" }) {
   const origin = `${originX},${originY}`         // lng,lat
   const destination = `${destX},${destY}`        // lng,lat
