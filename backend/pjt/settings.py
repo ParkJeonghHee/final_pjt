@@ -37,10 +37,12 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
 FIN_API_KEY = env("FIN_API_KEY")
 GMS_KEY = os.getenv("GMS_KEY")
+BOK_API_KEY = env("BOK_API_KEY", default="")
 
 # Application definition
 
 INSTALLED_APPS = [
+    'market',
     'loans',
     'chat',
     'recommend',

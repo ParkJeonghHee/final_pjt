@@ -4,14 +4,14 @@
       <h4 class="fw-bold mb-3">관심 종목 관련 영상 검색</h4>
 
       <!-- 검색 UI -->
-      <div class="d-flex gap-2 mb-3">
+      <div class="d-flex gap-2 mb-3 align-items-stretch">
         <input 
           v-model.trim="q"
           class="form-control"
           type="text"
           placeholder="검색어를 입력하세요"
           @keyup.enter="onSearch" />
-        <button class="btn btn-success" @click="onSearch" :disabled="loading">
+        <button class="btn btn-success search-btn" @click="onSearch" :disabled="loading">
           검색
         </button>
       </div>
@@ -96,3 +96,16 @@ async function onSearch() {
   }
 }
 </script>
+
+<style scoped>
+.search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-width: 56px;
+  padding: 0 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+</style>

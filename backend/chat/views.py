@@ -144,6 +144,9 @@ def chat(request):
         data = gms_chat_completion(messages, model="gpt-5-nano")
         reply = data["choices"][0]["message"]["content"]
 
+        ChatMessage.objects.create(user=request.user, role="user", content=message)
+        ChatMessage.objects.create(user=request.user, role="assistant", content=reply)
+
         if db_error and not top_products:
             reply += "\n\n(참고) DB 추천 후보 계산 중 오류가 발생했습니다. 추천 기능 설정을 확인해주세요."
 
@@ -194,44 +197,3 @@ def reset(request):
     return Response({"ok": True}, status=200)
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def chat(request):
-    message = (request.data.get("message") or "").strip()
-    if not message:
-        return Response({"ok": False, "reply": "메시지를 입력해 주세요."}, status=200)
-
-    N = 20
-    prev = ChatMessage.objects.filter(user=request.user).order_by("-created_at")[:N]
-    prev = list(reversed(prev))
-
-    messages = [
-        {
-            "role": "developer",
-            "content": (
-                "너는 Bankbook 서비스의 금융 상담 챗봇이다. 반드시 한국어로 답변한다. "
-                "번호/제목/대괄호 형식 금지. 여러 추천이면 각 상품은 '•'로 시작. "
-                "대출 문의에는 고정/변동금리, LTV·DSR, 상환방식, 중도상환수수료, "
-                "비대면/영업점 가입 기준을 포함해 안내하고, 특정 대출상품명은 단정적으로 추천하지 않는다."
-            )
-        }
-    ]
-    for m in prev:
-        messages.append({"role": m.role, "content": m.content})
-    messages.append({"role": "user", "content": message})
-
-    try:
-        data = gms_chat_completion(messages, model="gpt-5-nano")  
-        reply = data["choices"][0]["message"]["content"].strip()
-
-        ChatMessage.objects.create(user=request.user, role="user", content=message)
-        ChatMessage.objects.create(user=request.user, role="assistant", content=reply)
-
-        return Response({"ok": True, "reply": reply}, status=200)
-
-    except Exception as e:
-        return Response({
-            "ok": False,
-            "reply": "현재 챗봇 응답 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
-            "error": str(e),
-        }, status=200)

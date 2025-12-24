@@ -1,5 +1,7 @@
 <template>
-  <main class="container my-4">
+  <main class="container my-4 deposits-page">
+
+    <!-- ✅ 2번 이미지 느낌: 심플한 타이틀 + 카드형 테이블 -->
 
     <div v-if="loading" class="text-center my-5">불러오는 중...</div>
     <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
@@ -78,9 +80,9 @@
               </div>
 
               <select v-model="sortKey" class="form-select form-select-sm" style="width: 180px">
-                <option value="RATE_DESC">금리 높은순(선택기간)</option>
-                <option value="BANK_ASC">은행명 오름차순</option>
-                <option value="NAME_ASC">상품명 오름차순</option>
+                <option value="RATE_DESC">금리</option>
+                <option value="BANK_ASC">은행명</option>
+                <option value="NAME_ASC">상품명</option>
               </select>
 
               <button class="btn btn-outline-secondary btn-sm" @click="toggleSortDir">
@@ -368,25 +370,65 @@ onMounted(async () => {
 <style scoped>
 .page-title {
   font-weight: 800;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.4px;
+  font-family: "Georgia", "Times New Roman", serif;
+  margin-bottom: 4px;
+}
+
+.page-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.page-sub {
+  color: #64748b;
+  margin-bottom: 0;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-badge {
+  background: rgba(14, 116, 144, 0.08);
+  color: #0e7490;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 991.98px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .rate-card {
   background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
 .filters {
-  padding-bottom: 14px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #eef1f4;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .rate-table thead th {
-  background: #f8f9fa;
+  background: #f1f5f9;
   font-weight: 800;
   font-size: 0.92rem;
   border-bottom: 1px solid #e9ecef;

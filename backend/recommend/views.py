@@ -108,13 +108,11 @@ def strengthen_reason_if_too_short(reason: str, product_name: str, target_type: 
 @permission_classes([IsAuthenticated])
 def recommend_product(request):
     user = request.user
-    profile = getattr(user, "profile", None)
+    age = getattr(user, "age", None)
+    income = getattr(user, "income", None)
+    total_assets = getattr(user, "total_assets", None)
 
-    age = getattr(profile, "age", None)
-    income = getattr(profile, "income", None)
-    total_assets = getattr(profile, "total_assets", None)
-
-    joined_raw = getattr(profile, "joined_products", [])
+    joined_raw = getattr(user, "joined_products", [])
     joined_ids = normalize_joined_ids(joined_raw)
 
     # Step 1) 우선순위 결정

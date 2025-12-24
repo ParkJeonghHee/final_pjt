@@ -58,22 +58,124 @@
         데이터 개수: {{ count }}개
       </p>
     </div>
+
+    <div class="p-4 border rounded bg-white mt-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <h4 class="fw-bold mb-0">환율·금리 추이</h4>
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label mb-0 small text-muted">기간</label>
+          <select class="form-select form-select-sm w-auto" v-model="years">
+            <option :value="1">최근 1년</option>
+            <option :value="3">최근 3년</option>
+            <option :value="5">최근 5년</option>
+            <option :value="10">최근 10년</option>
+          </select>
+        </div>
+      </div>
+
+      <p v-if="marketError" class="text-danger fw-semibold mb-3">
+        {{ marketError }}
+      </p>
+
+      <div class="macro-grid">
+        <div class="macro-card">
+          <div class="macro-header">
+            <div>
+              <p class="macro-title">USD/KRW</p>
+              <p class="macro-value">{{ formatNumber(latest.usd) }}</p>
+              <p class="macro-sub">달러 환율</p>
+            </div>
+          </div>
+          <div class="macro-chart">
+            <canvas ref="usdChartEl"></canvas>
+          </div>
+          <p v-if="marketSeries.usd.length === 0" class="macro-empty">데이터 없음</p>
+        </div>
+
+        <div class="macro-card">
+          <div class="macro-header">
+            <div>
+              <p class="macro-title">JPY/KRW</p>
+              <p class="macro-value">{{ formatNumber(latest.jpy) }}</p>
+              <p class="macro-sub">엔 환율 (100엔)</p>
+            </div>
+          </div>
+          <div class="macro-chart">
+            <canvas ref="jpyChartEl"></canvas>
+          </div>
+          <p v-if="marketSeries.jpy.length === 0" class="macro-empty">데이터 없음</p>
+        </div>
+
+        <div class="macro-card">
+          <div class="macro-header">
+            <div>
+              <p class="macro-title">KR 기준금리</p>
+              <p class="macro-value">{{ formatPercent(latest.baseRate) }}</p>
+              <p class="macro-sub">대한민국 기준금리</p>
+            </div>
+          </div>
+          <div class="macro-chart">
+            <canvas ref="baseRateChartEl"></canvas>
+          </div>
+          <p v-if="marketSeries.baseRate.length === 0" class="macro-empty">데이터 없음</p>
+        </div>
+
+        <div class="macro-card">
+          <div class="macro-header">
+            <div>
+              <p class="macro-title">국채 3년</p>
+              <p class="macro-value">{{ formatPercent(latest.bond3y) }}</p>
+              <p class="macro-sub">금리 기준 지표</p>
+            </div>
+          </div>
+          <div class="macro-chart">
+            <canvas ref="bond3yChartEl"></canvas>
+          </div>
+          <p v-if="marketSeries.bond3y.length === 0" class="macro-empty">데이터 없음</p>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue"
+import { ref, onMounted, watch, nextTick } from "vue"
 import { Chart } from "chart.js/auto"
 import { fetchMetalSeries } from "@/api/metals"
+import { fetchMarketHistory } from "@/api/market"
 
 const asset = ref("gold")
 const start = ref("")
 const end = ref("")
 const errorMsg = ref("")
 const count = ref(null)
+const years = ref(3)
+const marketError = ref("")
+const marketSeries = ref({
+  usd: [],
+  jpy: [],
+  baseRate: [],
+  bond3y: [],
+})
+const latest = ref({
+  usd: null,
+  jpy: null,
+  baseRate: null,
+  bond3y: null,
+})
 
 const chartEl = ref(null)
+const usdChartEl = ref(null)
+const jpyChartEl = ref(null)
+const baseRateChartEl = ref(null)
+const bond3yChartEl = ref(null)
 let chartInstance = null
+const marketCharts = {
+  usd: null,
+  jpy: null,
+  baseRate: null,
+  bond3y: null,
+}
 
 function destroyChart() {
   if (chartInstance) {
@@ -142,6 +244,140 @@ function renderChart(labels, data) {
   })
 }
 
+function formatNumber(value, digits = 2) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return "-"
+  return num.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+}
+
+function formatPercent(value) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return "-"
+  return `${num.toFixed(2)}%`
+}
+
+function destroyMarketCharts() {
+  Object.keys(marketCharts).forEach((key) => {
+    if (marketCharts[key]) {
+      marketCharts[key].destroy()
+      marketCharts[key] = null
+    }
+  })
+}
+
+function renderMarketChart(key, el, labels, data, lineColor) {
+  if (!el) {
+    return
+  }
+  if (marketCharts[key]) {
+    marketCharts[key].destroy()
+    marketCharts[key] = null
+  }
+
+  const ctx = el.getContext("2d")
+  const gradient = ctx.createLinearGradient(0, 0, 0, el.height || 240)
+  gradient.addColorStop(0, `${lineColor}33`)
+  gradient.addColorStop(1, "rgba(255, 255, 255, 0)")
+
+  marketCharts[key] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          borderColor: lineColor,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.parsed.y.toLocaleString()}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          display: false,
+        },
+        y: {
+          display: true,
+          grid: { color: "rgba(15, 23, 42, 0.08)" },
+          ticks: {
+            callback: (v) => Number(v).toLocaleString(),
+          },
+        },
+      },
+    },
+  })
+}
+
+async function loadMarketHistory() {
+  marketError.value = ""
+  try {
+    const data = await fetchMarketHistory(years.value)
+    const series = data.series || {}
+
+    marketSeries.value = {
+      usd: series.usd_krw || [],
+      jpy: series.jpy_krw_100 || [],
+      baseRate: series.base_rate || [],
+      bond3y: series.bond_3y || [],
+    }
+
+    const pickLast = (list) => (list.length ? list[list.length - 1].value : null)
+    latest.value = {
+      usd: pickLast(marketSeries.value.usd),
+      jpy: pickLast(marketSeries.value.jpy),
+      baseRate: pickLast(marketSeries.value.baseRate),
+      bond3y: pickLast(marketSeries.value.bond3y),
+    }
+
+    await nextTick()
+    renderMarketChart(
+      "usd",
+      usdChartEl.value,
+      marketSeries.value.usd.map((x) => x.date),
+      marketSeries.value.usd.map((x) => x.value),
+      "#2563eb",
+    )
+    renderMarketChart(
+      "jpy",
+      jpyChartEl.value,
+      marketSeries.value.jpy.map((x) => x.date),
+      marketSeries.value.jpy.map((x) => x.value),
+      "#0ea5e9",
+    )
+    renderMarketChart(
+      "baseRate",
+      baseRateChartEl.value,
+      marketSeries.value.baseRate.map((x) => x.date),
+      marketSeries.value.baseRate.map((x) => x.value),
+      "#10b981",
+    )
+    renderMarketChart(
+      "bond3y",
+      bond3yChartEl.value,
+      marketSeries.value.bond3y.map((x) => x.date),
+      marketSeries.value.bond3y.map((x) => x.value),
+      "#f97316",
+    )
+  } catch (err) {
+    marketError.value = "시장 데이터를 불러오는 중 오류가 발생했습니다."
+    destroyMarketCharts()
+  }
+}
+
 async function loadSeries() {
   errorMsg.value = ""
 
@@ -199,9 +435,81 @@ function onReset() {
 
 onMounted(() => {
   loadSeries()
+  loadMarketHistory()
 })
 
 watch(asset, () => {
   loadSeries()
 })
+
+watch(years, () => {
+  loadMarketHistory()
+})
 </script>
+
+<style scoped>
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.macro-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.macro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.macro-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin: 0;
+}
+
+.macro-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 2px 0 0;
+}
+
+.macro-sub {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 0;
+}
+
+.macro-chart {
+  position: relative;
+  height: 160px;
+}
+
+.macro-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 991.98px) {
+  .macro-grid {
+    grid-template-columns: 1fr;
+  }
+  .macro-chart {
+    height: 180px;
+  }
+}
+</style>
