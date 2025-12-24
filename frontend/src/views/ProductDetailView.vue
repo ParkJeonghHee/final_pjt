@@ -147,12 +147,8 @@ const tabs = [
 
 const activeTab = ref("rate")
 
-const isLoggedIn = computed(() => !!localStorage.getItem("access")) // 토큰 키값 확인 필요
+const isLoggedIn = computed(() => !!localStorage.getItem("access"))
 
-/**
- * ✅ 우대금리 안내 (spcl_cnd 필드 사용 권장)
- * DB나 API에서 넘어오는 필드명이 'spcl_cnd'일 가능성이 높습니다.
- */
 const preferRateGuide = computed(() => {
   const v = product.value?.spcl_cnd || product.value?.prefer_rate_guide
 
@@ -213,10 +209,6 @@ function normalizeLines(v) {
     .filter(Boolean)
 }
 
-/**
- * 🔹 금리 포맷팅 함수
- * 값이 없으면 '-', 있으면 소수점 2자리까지 표시 (예: 2.4 -> 2.40)
- */
 function formatRate(value) {
   if (value === null || value === undefined || value === "") return "-"
   const num = Number(value)
@@ -247,10 +239,8 @@ async function joinProduct() {
 
   try {
     const id = route.params.id
-    // 필요 시 post body에 데이터 추가 (예: 가입 기간 등)
     await http.post(`/api/products/${id}/join/`)
     
-    // UI 즉시 반영
     if (product.value) {
       product.value = { ...product.value, is_joined: true }
     }
@@ -297,7 +287,7 @@ async function joinProduct() {
 }
 
 .info-box {
-  background: #f3f0ff; /* 연한 보라빛 배경 변경 (가독성) */
+  background: #f3f0ff;
   color: #5f3dc4;
   border-radius: 12px;
   padding: 20px;

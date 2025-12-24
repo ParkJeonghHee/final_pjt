@@ -3,12 +3,10 @@
 
     <!-- ✅ 2번 이미지 느낌: 심플한 타이틀 + 카드형 테이블 -->
 
-    <!-- 로딩 / 에러 -->
     <div v-if="loading" class="text-center my-5">불러오는 중...</div>
     <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
 
     <div v-else class="rate-card">
-      <!-- ✅ 상단 필터(2번처럼 테이블 위로 이동, 좌측 패널 제거) -->
       <div class="filters">
         <div class="row g-2 align-items-end">
           <div class="col-12 col-md-3">
@@ -99,7 +97,6 @@
         </div>
       </div>
 
-      <!-- ✅ 테이블 -->
       <div class="table-responsive">
         <table class="table align-middle mb-0 rate-table">
           <thead>
@@ -144,7 +141,6 @@
         </table>
       </div>
 
-      <!-- ✅ 2번처럼 하단 가운데 느낌의 페이지네이션 -->
       <div class="pager">
         <button class="btn btn-outline-secondary btn-sm" :disabled="page === 1" @click="page--">
           이전
@@ -169,7 +165,6 @@ import { fetchProducts, fetchBanks, syncProducts } from "@/api/products"
 
 const router = useRouter()
 
-/* 상태 */
 const products = ref([])
 const banks = ref([])
 
@@ -181,7 +176,6 @@ const bank = ref("전체")
 const term = ref("")
 const q = ref("")
 
-/* 추가 UX 상태 */
 const onlyWithSelectedTerm = ref(false)
 const sortKey = ref("RATE_DESC") // RATE_DESC | BANK_ASC | NAME_ASC
 const sortDir = ref("desc") // desc | asc
@@ -189,10 +183,8 @@ const sortDir = ref("desc") // desc | asc
 const page = ref(1)
 const pageSize = ref(10)
 
-/* ✅ 선택기간(없으면 12개월을 기본 선택처럼 강조) */
 const selectedMonths = computed(() => Number(term.value || 12))
 
-/* 은행 목록 로딩 + (필요시) 자동 sync */
 async function ensureBanksLoaded() {
   let bankList = await fetchBanks(productType.value)
   const isEmpty =
@@ -206,7 +198,6 @@ async function ensureBanksLoaded() {
   banks.value = (bankList || []).filter((b) => b !== "전체")
 }
 
-/* 상품 목록 조회 */
 async function fetchProductsList() {
   loading.value = true
   error.value = ""
@@ -226,7 +217,6 @@ async function fetchProductsList() {
   }
 }
 
-/* 탭 변경 */
 async function changeType(type) {
   if (productType.value === type) return
 
@@ -249,14 +239,10 @@ async function changeType(type) {
   }
 }
 
-/* 상세 페이지 이동 */
 function goDetail(id) {
   router.push(`/products/${id}`)
 }
 
-/* -----------------------------
-   금리 파싱(안전)
--------------------------------- */
 function extractRates(p) {
   const flat = {
     6: p.rate_6 ?? p.intr_rate_6,
@@ -309,9 +295,6 @@ function selectedTermRate(p) {
   return Number.isFinite(num) ? num : -Infinity
 }
 
-/* -----------------------------
-   클라이언트 기능
--------------------------------- */
 const filteredAndSorted = computed(() => {
   let list = [...(products.value || [])]
 
@@ -338,7 +321,6 @@ const filteredAndSorted = computed(() => {
   return list
 })
 
-/* 페이지네이션 */
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filteredAndSorted.value.length / pageSize.value))
 )
@@ -355,28 +337,22 @@ function toggleSortDir() {
   sortDir.value = sortDir.value === "desc" ? "asc" : "desc"
 }
 
-/* ✅ 2번 이미지처럼: 선택기간(기본 12개월) 컬럼은 빨강, 나머지는 파랑(숫자일 때만) */
 function rateClass(p, months) {
   const rates = extractRates(p)
 
-  // 현재 셀 값
   const v = rates?.[months]
   const num = Number(v)
   if (!Number.isFinite(num)) return "rate-missing"
 
-  // 행(상품) 기준 6/12/24/36 중 최대값 계산
   const candidates = [6, 12, 24, 36]
     .map((m) => Number(rates?.[m]))
     .filter((x) => Number.isFinite(x))
 
   const maxRate = candidates.length ? Math.max(...candidates) : -Infinity
 
-  // 최댓값(동률 포함)은 굵게
   return num === maxRate ? "rate-max" : "rate-base"
 }
 
-
-/* 최초 로딩 */
 onMounted(async () => {
   loading.value = true
   error.value = ""
@@ -392,7 +368,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ✅ 2번 이미지 톤: 심플한 제목 */
 .page-title {
   font-weight: 800;
   letter-spacing: -0.4px;
@@ -436,7 +411,6 @@ onMounted(async () => {
   }
 }
 
-/* ✅ 카드(white box) + 여백 + 테두리 */
 .rate-card {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -445,7 +419,6 @@ onMounted(async () => {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
-/* 필터 영역: 카드 상단에 얇은 구분 */
 .filters {
   padding: 14px;
   margin-bottom: 12px;
@@ -454,7 +427,6 @@ onMounted(async () => {
   background: #f8fafc;
 }
 
-/* 테이블: 2번처럼 헤더 연하게 */
 .rate-table thead th {
   background: #f1f5f9;
   font-weight: 800;
@@ -467,12 +439,10 @@ onMounted(async () => {
   border-bottom: 1px solid #f1f3f5;
 }
 
-/* 상품명 줄바꿈/가독성 */
 .product-name {
   word-break: keep-all;
 }
 
-/* 행 hover */
 .row-click {
   cursor: pointer;
 }
@@ -480,27 +450,21 @@ onMounted(async () => {
   background: #fbfcfd;
 }
 
-/* ✅ 금리 기본: 검정 + 보통 */
 .rate-base {
   color: #000;
   font-weight: 400;
 }
 
-/* ✅ 행(상품) 내 최댓값: 검정 + 굵게 */
 .rate-max {
   color: #000;
   font-weight: 700;
 }
 
-/* 없는 값 */
 .rate-missing {
   color: #adb5bd;
   font-weight: 400;
 }
 
-
-
-/* 페이지네이션: 가운데 정렬 */
 .pager {
   margin-top: 16px;
   display: flex;

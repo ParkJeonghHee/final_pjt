@@ -66,7 +66,6 @@ const embedUrl = computed(() => {
   return `https://www.youtube.com/embed/${videoId.value}`
 })
 
-/* ✅ 저장 스토어 */
 const savedStore = useSavedVideosStore()
 const isSaved = computed(() => savedStore.isSaved(videoId.value))
 
@@ -74,7 +73,6 @@ function goBack() {
   router.back()
 }
 
-/* ✅ 저장/해제 */
 function toggleSave() {
   if (!videoId.value || !video.value) return
 
