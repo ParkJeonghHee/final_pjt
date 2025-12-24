@@ -47,8 +47,7 @@ const error = ref('')
 
 async function doLogin() {
   error.value = ""
-  
-  // 유효성 검사 (간단 예시)
+
   if (!username.value || !password.value) {
     error.value = "아이디와 비밀번호를 모두 입력해주세요."
     return
@@ -56,7 +55,6 @@ async function doLogin() {
 
   try {
     await auth.login(username.value, password.value)
-    // ✅ 로그인 성공 후 홈으로 이동
     router.push("/") 
   } catch(e) {
     error.value = "로그인 실패 (아이디 또는 비밀번호 확인)"
